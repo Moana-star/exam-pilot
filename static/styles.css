@@ -1,0 +1,163 @@
+:root {
+  color-scheme: light;
+  --paper: #f6f5f0;
+  --surface: #fffefa;
+  --ink: #192c46;
+  --muted: #647286;
+  --line: #dfe3e5;
+  --teal: #16736f;
+  --teal-dark: #105d5a;
+  --teal-pale: #e8f3f0;
+  --error: #a23c37;
+  --shadow: 0 18px 50px rgb(25 44 70 / 7%);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.55;
+}
+
+button, textarea, input { font: inherit; }
+
+.shell {
+  width: min(100% - 40px, 920px);
+  min-height: 100vh;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.site-header {
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgb(25 44 70 / 10%);
+}
+
+.wordmark {
+  color: var(--ink);
+  font-size: 1.22rem;
+  font-weight: 760;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+}
+
+.header-note, .site-footer { color: var(--muted); font-size: 0.84rem; }
+
+.view { width: min(100%, 740px); margin: 0 auto; padding: 52px 0 56px; }
+
+.intro { max-width: 620px; margin-bottom: 34px; }
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--teal);
+  font-size: 0.76rem;
+  font-weight: 760;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.08; letter-spacing: -0.045em; }
+
+.intro-copy, .body-copy { max-width: 590px; margin: 16px 0 0; color: var(--muted); font-size: 1.04rem; }
+
+.study-form, .result-view {
+  padding: clamp(22px, 5vw, 38px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.field-group { margin-bottom: 25px; }
+.label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+label { display: block; margin-bottom: 9px; font-size: 0.94rem; font-weight: 700; }
+.field-hint, .help-text { color: var(--muted); font-size: 0.8rem; }
+.field-hint.over-limit { color: var(--error); font-weight: 700; }
+
+textarea, input {
+  width: 100%;
+  border: 1px solid #cbd3d8;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+textarea { min-height: 210px; padding: 14px 15px; resize: vertical; }
+input { min-height: 50px; padding: 0 15px; }
+textarea::placeholder, input::placeholder { color: #909ba6; }
+textarea:focus, input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgb(22 115 111 / 13%); }
+.help-text { margin: 8px 0 0; }
+.topic-group { margin-bottom: 27px; }
+.field-error, .request-error { margin: 7px 0 0; color: var(--error); font-size: 0.88rem; }
+.request-error { margin: 0 0 18px; padding: 12px 14px; border-radius: 9px; background: #fbefed; }
+
+.button {
+  min-height: 49px;
+  padding: 0 19px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 720;
+  transition: background 140ms ease, transform 140ms ease, border-color 140ms ease;
+}
+
+.button:hover:not(:disabled) { transform: translateY(-1px); }
+.button:focus-visible { outline: 3px solid rgb(22 115 111 / 28%); outline-offset: 2px; }
+.button:disabled { cursor: wait; opacity: 0.76; }
+.button-primary { background: var(--teal); color: white; }
+.button-primary:hover:not(:disabled) { background: var(--teal-dark); }
+.button-secondary { border-color: var(--line); background: #fff; color: var(--ink); }
+.button-secondary:hover:not(:disabled) { border-color: #9eafb5; background: #f9fbfa; }
+
+.grounding-note { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; color: var(--muted); font-size: 0.82rem; }
+.note-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); }
+.site-footer { margin-top: auto; padding: 22px 0; border-top: 1px solid rgb(25 44 70 / 10%); text-align: center; }
+
+.result-view { margin-top: 54px; }
+.topic-chip { display: inline-block; margin: 22px 0 15px; padding: 5px 11px; border-radius: 999px; background: var(--teal-pale); color: var(--teal-dark); font-size: 0.83rem; font-weight: 680; }
+.question-text { font-size: clamp(1.6rem, 4vw, 2.25rem); line-height: 1.28; }
+.source-card { margin: 28px 0; padding: 18px 20px; border-left: 3px solid var(--teal); border-radius: 0 11px 11px 0; background: var(--teal-pale); }
+.source-label { margin: 0 0 8px; color: var(--teal-dark); font-size: 0.84rem; font-weight: 730; }
+.source-mark { margin-right: 5px; }
+blockquote { margin: 0; color: #334c5a; font-size: 0.95rem; }
+.answer-form { display: grid; gap: 8px; margin: 30px 0 22px; }
+.answer-form textarea { min-height: 130px; }
+.answer-form .button { justify-self: start; }
+.evaluation-label { display: inline-block; margin: 18px 0 0; padding: 6px 12px; border-radius: 999px; background: var(--teal-pale); color: var(--teal-dark); font-weight: 750; }
+.feedback-section { margin-top: 28px; }
+.feedback-section h2 { margin: 0 0 12px; font-size: 1.05rem; }
+.feedback-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.feedback-point { padding: 15px 17px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.feedback-point p { margin: 0; }
+.feedback-point blockquote { margin-top: 10px; padding-left: 12px; border-left: 2px solid var(--teal); }
+.no-evidence { margin-top: 9px !important; color: var(--muted); font-size: 0.84rem; }
+.button-row { display: flex; flex-wrap: wrap; gap: 11px; margin-top: 26px; }
+.slice-note { margin: 18px 0 0; color: var(--muted); font-size: 0.82rem; }
+
+[hidden] { display: none !important; }
+
+@media (max-width: 600px) {
+  .shell { width: min(100% - 28px, 920px); }
+  .site-header { min-height: 68px; }
+  .header-note { max-width: 150px; text-align: right; font-size: 0.75rem; }
+  .view { padding: 38px 0; }
+  .study-form, .result-view { border-radius: 14px; }
+  .label-row { align-items: flex-start; flex-direction: column; gap: 0; }
+  textarea { min-height: 185px; }
+  .button-row .button { width: 100%; }
+}

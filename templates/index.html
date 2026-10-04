@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f6f5f0">
+    <title>ExamPilot — Turn your notes into practice</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="site-header">
+        <a class="wordmark" href="/" aria-label="ExamPilot home">ExamPilot</a>
+        <span class="header-note">A study partner grounded in your notes</span>
+      </header>
+
+      <section id="start-view" class="view" aria-labelledby="page-title">
+        <div class="intro">
+          <p class="eyebrow">Study with what you know</p>
+          <h1 id="page-title">Turn your notes into practice.</h1>
+          <p class="intro-copy">Get a focused question based on your course material, then check what you understand.</p>
+        </div>
+
+        <form id="question-form" class="study-form" novalidate>
+          <div class="field-group">
+            <div class="label-row">
+              <label for="material">Paste your course material here</label>
+              <span id="word-count" class="field-hint">0 / about 5,000 words</span>
+            </div>
+            <textarea id="material" name="material" rows="11" aria-describedby="material-help material-error" placeholder="Paste a relevant section of your notes or course material…"></textarea>
+            <p id="material-help" class="help-text">Paste material relevant to the topic you want to practice. No special formatting is needed.</p>
+            <p id="material-error" class="field-error" role="alert"></p>
+          </div>
+
+          <div class="field-group topic-group">
+            <label for="topic">What topic do you want to practice?</label>
+            <input id="topic" name="topic" type="text" autocomplete="off" aria-describedby="topic-error" placeholder="For example: cell respiration">
+            <p id="topic-error" class="field-error" role="alert"></p>
+          </div>
+
+          <p id="request-error" class="request-error" role="alert" hidden></p>
+          <button id="retry-question" class="button button-primary retry-button" type="button" hidden>Try Again</button>
+
+          <button id="generate-button" class="button button-primary" type="submit">
+            <span class="button-label">Generate Question</span>
+            <span class="button-loading" hidden>Generating question…</span>
+            <span aria-hidden="true">→</span>
+          </button>
+          <p class="grounding-note"><span class="note-dot" aria-hidden="true"></span>Questions use only the material you provide.</p>
+        </form>
+      </section>
+
+      <section id="question-view" class="view result-view" aria-labelledby="question-heading" hidden>
+        <p class="eyebrow">Your practice question</p>
+        <p id="question-topic" class="topic-chip"></p>
+        <h1 id="question-heading" class="question-text"></h1>
+        <div class="source-card">
+          <p class="source-label"><span class="source-mark" aria-hidden="true">✓</span> Based on your material</p>
+          <blockquote id="question-evidence"></blockquote>
+        </div>
+        <form id="answer-form" class="answer-form" novalidate>
+          <label for="answer">Your answer</label>
+          <textarea id="answer" name="answer" rows="5" aria-describedby="answer-error" placeholder="Explain what you understand in your own words."></textarea>
+          <p id="answer-error" class="field-error" role="alert"></p>
+          <p id="evaluation-error" class="request-error" role="alert" hidden></p>
+          <button id="retry-evaluation" class="button button-primary retry-button" type="button" hidden>Try Again</button>
+          <button id="evaluate-button" class="button button-primary" type="submit">
+            <span class="button-label">Submit Answer</span>
+            <span class="button-loading" hidden>Checking your answer…</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </form>
+        <button id="change-inputs" class="button button-secondary" type="button">Change material or topic</button>
+      </section>
+
+      <section id="feedback-view" class="view result-view" aria-labelledby="feedback-heading" hidden>
+        <p class="eyebrow">Your feedback</p>
+        <p id="evaluation-label" class="evaluation-label"></p>
+        <h1 id="feedback-heading">Understand your answer</h1>
+        <p id="evaluation-explanation" class="body-copy"></p>
+        <section class="feedback-section" aria-labelledby="included-heading">
+          <h2 id="included-heading">What you included</h2>
+          <ul id="included-points" class="feedback-list"></ul>
+        </section>
+        <section class="feedback-section" aria-labelledby="missing-heading">
+          <h2 id="missing-heading">What to review</h2>
+          <ul id="missing-points" class="feedback-list"></ul>
+        </section>
+        <div class="button-row">
+          <button id="next-question" class="button button-primary" type="button">
+            <span class="button-label">Next Question</span>
+            <span class="button-loading" hidden>Generating question…</span>
+          </button>
+          <button id="feedback-change-inputs" class="button button-secondary" type="button">Change material or topic</button>
+        </div>
+        <p id="next-question-error" class="request-error" role="alert" hidden></p>
+        <button id="retry-next-question" class="button button-primary retry-button" type="button" hidden>Try Again</button>
+      </section>
+
+      <section id="unsupported-view" class="view result-view" aria-labelledby="unsupported-heading" hidden>
+        <p class="eyebrow">Choose a covered topic</p>
+        <h1 id="unsupported-heading">We couldn’t make a grounded question.</h1>
+        <p id="unsupported-explanation" class="body-copy"></p>
+        <div class="button-row">
+          <button id="choose-topic" class="button button-primary" type="button">Choose Another Topic</button>
+          <button id="add-material" class="button button-secondary" type="button">Add More Material</button>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <span>Practice grounded in your course material</span>
+      </footer>
+    </main>
+  </body>
+</html>

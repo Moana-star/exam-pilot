@@ -1,0 +1,11 @@
+﻿/devpost/learner-profile.md
+.env
+.env.*
+!.env.example
+.flaskenv
+.envrc
+/.venv/
+__pycache__/
+*.py[cod]
+/.claude/
+/agent/

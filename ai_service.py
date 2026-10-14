@@ -215,7 +215,7 @@ def _best_exact_evidence(context_text: str, topic: str, question: str, source_ma
 
     topic_tokens = tokens(topic)
     question_tokens = tokens(question)
-    candidates = re.split(r"(?<=[.!?])\s+|\n+", context_text)
+    candidates = re.split(r"(?<=[.!?])\s+|\n{2,}", context_text)
     best_excerpt = ""
     best_score = float("-inf")
 

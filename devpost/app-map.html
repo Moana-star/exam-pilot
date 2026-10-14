@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A code tour of ExamPilot, the source-grounded study practice MVP.">
+  <title>ExamPilot — App Map</title>
+  <style>
+    :root{color-scheme:light;--paper:#f7f6f2;--card:#fff;--ink:#18243a;--muted:#596579;--line:#dce2e8;--blue:#244d78;--teal:#176b63;--soft:#edf4f5;--amber:#77521a}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+    a{color:var(--blue);text-underline-offset:3px}
+    a:focus-visible{outline:3px solid #bd7d24;outline-offset:3px}
+    .wrap{width:min(1080px,calc(100% - 32px));margin:auto}
+    header{padding:48px 0 30px;background:#eaf0f4;border-bottom:1px solid var(--line)}
+    .eyebrow{font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--teal)}
+    h1,h2,h3{line-height:1.2;letter-spacing:-.025em}
+    h1{font-size:clamp(2.2rem,6vw,3.6rem);margin:.35rem 0 .8rem}
+    h2{font-size:1.65rem;margin:0 0 1rem}
+    h3{font-size:1.1rem;margin:.2rem 0 .6rem}
+    p{margin:.45rem 0 1rem}
+    .lead{max-width:760px;font-size:1.12rem;color:#34445a}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+    .chip{padding:5px 10px;border:1px solid #c8d6df;border-radius:999px;background:#fff;font-size:.85rem;font-weight:650}
+    main{padding:28px 0 56px}
+    section{margin:0 0 28px}
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 3px 14px #172a3a0a}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .step{position:relative;padding:18px;border:1px solid var(--line);border-radius:13px;background:#fff}
+    .num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--blue);color:#fff;font-weight:800;margin-bottom:9px}
+    code{font: .9em ui-monospace,SFMono-Regular,Consolas,monospace;background:#eef1f5;padding:2px 5px;border-radius:5px;overflow-wrap:anywhere}
+    pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#152438;color:#f1f5f9;padding:16px;border-radius:12px;overflow:auto}
+    pre code{background:transparent;color:inherit;padding:0}
+    ul,ol{padding-left:1.25rem}
+    li{margin:.35rem 0}
+    .note{border-left:4px solid var(--teal);padding:10px 14px;background:var(--soft);border-radius:0 9px 9px 0}
+    .caution{border-left-color:#b17b29;background:#fbf5e9}
+    .filelist{display:grid;grid-template-columns:minmax(155px,.8fr) 1.6fr;gap:0;border-top:1px solid var(--line)}
+    .filelist div{padding:11px 8px;border-bottom:1px solid var(--line)}
+    .filelist .path{font-weight:700}
+    .small{font-size:.9rem;color:var(--muted)}
+    footer{border-top:1px solid var(--line);padding:22px 0 34px;color:var(--muted)}
+    @media(max-width:680px){.grid{grid-template-columns:1fr}.panel{padding:17px}.filelist{grid-template-columns:1fr}.filelist div{padding:8px}.filelist .path{padding-bottom:0;border-bottom:0}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="eyebrow">Project code tour · ExamPilot</div>
+      <h1>From course notes to grounded practice</h1>
+      <p class="lead">ExamPilot is a small Flask application that turns a learner’s own course material into one practice question, then evaluates an answer against that same source. This map follows the code path and calls out the boundaries that matter most.</p>
+      <div class="chips"><span class="chip">Python + Flask</span><span class="chip">Plain HTML/CSS/JS</span><span class="chip">Local Ollama · qwen2.5:3b</span><span class="chip">No database or account</span></div>
+    </div>
+  </header>
+  <main class="wrap">
+    <section class="panel" aria-labelledby="journey">
+      <h2 id="journey">1. The end-to-end route</h2>
+      <div class="grid">
+        <article class="step"><div class="num">1</div><h3>Supply material + topic</h3><p>Start in <code>templates/index.html</code>. <code>static/app.js</code> validates required fields and applies the approximately 5,000-word limit to pasted text.</p><p><a href="../templates/index.html">Open study page markup</a> · <a href="../static/app.js">Open browser flow</a></p></article>
+        <article class="step"><div class="num">2</div><h3>Optionally extract a file</h3><p><code>POST /api/material</code> accepts a single supported upload. <code>material_service.py</code> extracts TXT, Markdown, text-based PDF, or DOCX content in memory; the browser puts it into the same editable text area.</p><p><a href="../material_service.py">Open extraction code</a> · <a href="../app.py">Open Flask routes</a></p></article>
+        <article class="step"><div class="num">3</div><h3>Select bounded topic context</h3><p><code>context_service.py</code> selects topic-relevant spans from longer notes. <code>SelectedContext</code> keeps source-span information so selected text can be mapped back to the original material.</p><p><a href="../context_service.py">Open context selection</a></p></article>
+        <article class="step"><div class="num">4</div><h3>Generate and validate a question</h3><p><code>POST /api/question</code> calls <code>ai_service.generate_question()</code>, which sends a structured request to local Ollama and validates the response and exact evidence excerpt before returning it.</p><p><a href="../ai_service.py">Open model request and validators</a></p></article>
+        <article class="step"><div class="num">5</div><h3>Evaluate the learner’s answer</h3><p>The browser posts material, topic, question, and answer to <code>POST /api/evaluate</code>. <code>ai_service.evaluate_answer()</code> validates the approved label, feedback structure, and every non-empty evidence excerpt.</p><p><a href="../app.py">Open API handlers</a> · <a href="../static/app.js">Open feedback UI</a></p></article>
+        <article class="step"><div class="num">6</div><h3>Continue or recover</h3><p>The page displays included and missing points with evidence, allows a next question, and keeps relevant values available after recoverable failures. Refreshing or closing the tab clears the in-memory session.</p><p><a href="../tests/">Open automated tests</a></p></article>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="contracts">
+      <h2 id="contracts">2. The three API contracts</h2>
+      <h3><code>POST /api/material</code></h3>
+      <p>Multipart form field: <code>file</code>. Success returns <code>{"material": "extracted text"}</code>. The file-size cap is 10 MB; extracted text is not capped by word count. Scanned PDFs are not OCR’d.</p>
+      <h3><code>POST /api/question</code></h3>
+      <pre><code>{"material": "student's notes", "topic": "Process Control Block"}</code></pre>
+      <p>A supported result contains <code>status</code>, <code>question</code>, <code>explanation</code>, and an exact <code>evidence_excerpt</code>. An unsupported topic returns an explanation and no fabricated question.</p>
+      <h3><code>POST /api/evaluate</code></h3>
+      <pre><code>{"material": "student's notes", "topic": "Process Control Block", "question": "What is stored in a PCB?", "answer": "My answer..."}</code></pre>
+      <p>The response label must be <code>Correct</code>, <code>Partially correct</code>, or <code>Needs improvement</code>. Feedback points can have an empty evidence excerpt, but the UI explicitly labels such points as lacking a supporting passage.</p>
+    </section>
+    <section class="panel" aria-labelledby="files">
+      <h2 id="files">3. Where responsibilities live</h2>
+      <div class="filelist">
+        <div class="path"><code>app.py</code></div><div>Flask page route, upload endpoint, question/evaluation endpoints, required-field checks, friendly errors, and request size cap.</div>
+        <div class="path"><code>material_service.py</code></div><div>In-memory file extraction and recoverable format/read errors.</div>
+        <div class="path"><code>context_service.py</code></div><div>Topic-aware selection of bounded source spans and mapping back to the original notes.</div>
+        <div class="path"><code>ai_service.py</code></div><div>Ollama HTTP request, JSON schemas, prompts, response validation, evidence checks, and safe diagnostic logging.</div>
+        <div class="path"><code>templates/index.html</code></div><div>Semantic page structure and accessible form controls.</div>
+        <div class="path"><code>static/app.js</code></div><div>Page-memory state, word counter, file upload interaction, loading states, screen transitions, retry flow, and feedback rendering.</div>
+        <div class="path"><code>static/styles.css</code></div><div>Responsive visual styling and feedback/evidence presentation.</div>
+        <div class="path"><code>tests/</code></div><div>Python <code>unittest</code> coverage for context selection, exact evidence checks, API behavior, upload limits, and unsupported files.</div>
+        <div class="path"><code>.github/workflows/tests.yml</code></div><div>GitHub Actions runs compilation and <code>python -m unittest discover -s tests -v</code> on Python 3.11 and 3.12.</div>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="principles">
+      <h2 id="principles">4. Design and safety principles</h2>
+      <ul>
+        <li><strong>Source boundary:</strong> the supplied course material is the only intended study source; the app does not use web search or a hosted AI API.</li>
+        <li><strong>Evidence check:</strong> every non-empty returned excerpt must be a literal substring of the original source. This proves the quote is present, not that the model’s interpretation is necessarily correct.</li>
+        <li><strong>Untrusted input:</strong> notes and answers are passed as data, separate from trusted application instructions.</li>
+        <li><strong>In-memory session:</strong> the app does not save uploaded files or keep a study history; refresh/close clears the browser session.</li>
+        <li><strong>Bounded uploads:</strong> supported file types are TXT, Markdown, text-based PDF, and DOCX, up to 10 MB. Scanned PDFs and OCR are out of scope.</li>
+        <li><strong>Recoverable failures:</strong> malformed model output or failed requests should not become invented questions or feedback; the app offers a retry path.</li>
+      </ul>
+      <p class="note caution"><strong>Important limitation:</strong> local model output can still be wrong or unhelpful even when its quoted evidence exists in the notes. The learner should compare the explanation and feedback with the source. The app is a study aid, not an authority on course content.</p>
+    </section>
+    <section class="panel" aria-labelledby="verification">
+      <h2 id="verification">5. Verification status</h2>
+      <ul>
+        <li><strong>Verified remotely:</strong> GitHub Actions run <a href="https://github.com/Moana-star/exam-pilot/actions/runs/38551028778">38551028778</a> succeeded on Python 3.11 and 3.12, including dependency installation, compilation, and unit tests for commit <code>0d74cbd</code>.</li>
+        <li><strong>Still needs local hands-on confirmation:</strong> a real browser session using the learner’s installed Ollama model, especially generation from the learner’s 20,067-word operating-systems notes and a complete question → answer → evaluation → next-question cycle.</li>
+      </ul>
+      <p class="small">This map documents the source tree and available CI evidence. It does not claim that an unobserved local Ollama session has passed.</p>
+    </section>
+    <section class="panel" aria-labelledby="practice">
+      <h2 id="practice">6. A project-grounded practice to reuse</h2>
+      <p>When a large-note request fails, debug the smallest boundary first instead of weakening the grounding checks:</p>
+      <ol>
+        <li>Check the browser Network panel for the <code>/api/question</code> status and response body.</li>
+        <li>Check the Flask terminal for the safe diagnostic fields <code>operation</code>, <code>failure_class</code>, and elapsed time—without printing course notes or full prompts.</li>
+        <li>Confirm that <code>select_relevant_context()</code> returns bounded context and that <code>SelectedContext.maps_to(original_material)</code> is true.</li>
+        <li>Verify that the local Ollama model is available with <code>ollama list</code> and test a short supported topic first.</li>
+        <li>Only then retry with the large notes. Preserve exact-evidence validation; do not accept a paraphrase as a source quote.</li>
+      </ol>
+    </section>
+    <section class="panel">
+      <h2>Run locally</h2>
+      <pre><code>python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+ollama pull qwen2.5:3b
+python -m flask --app app run</code></pre>
+      <p>Open <code>http://127.0.0.1:5000</code>. For automated tests, use the project’s standard-library test runner:</p>
+      <pre><code>python -m compileall -q app.py ai_service.py context_service.py material_service.py tests
+python -m unittest discover -s tests -v</code></pre>
+      <p><a href="../README.md">Read the full setup guide</a> · <a href="checklist.md">Open the build checklist</a> · <a href="submission-draft.md">Open the submission draft</a></p>
+    </section>
+  </main>
+  <footer><div class="wrap">ExamPilot · Static code tour · Based on the public source tree; local end-to-end verification remains a separate step.</div></footer>
+</body>
+</html>

@@ -85,6 +85,13 @@ GitHub Actions runs compilation and the unit tests on Python 3.11 and 3.12 for p
 | `tests/` | Automated unit and API tests |
 | `devpost/` | Product requirements, technical spec, and build checklist |
 
+## Project tour and submission preparation
+
+- [App map and code tour](devpost/app-map.html) — traces the browser flow, Flask routes, context selection, Ollama validation, safety boundaries, and the remaining local verification.
+- [Demo recording guide](devpost/demo-script.md) — a short, honest recording plan with a preflight checklist.
+- [Devpost submission draft](devpost/submission-draft.md) — editable project summary and verification note. Review it and add your actual demo URL before submitting.
+- [Build checklist](devpost/checklist.md) — separates automated checks from hands-on checks that still need a real local run.
+
 ## API routes
 
 - `POST /api/material` — extract a supported uploaded file into text.

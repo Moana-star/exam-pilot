@@ -29,8 +29,13 @@
               <span id="word-count" class="field-hint">0 / about 5,000 words</span>
             </div>
             <textarea id="material" name="material" rows="11" aria-describedby="material-help material-error" placeholder="Paste a relevant section of your notes or course material…"></textarea>
-            <p id="material-help" class="help-text">Paste material relevant to the topic you want to practice. No special formatting is needed.</p>
+            <p id="material-help" class="help-text">Pasting material is still supported. You can also upload a .txt, .md, .pdf, or .docx file (up to 10 MB). Text-based PDFs only.</p>
             <p id="material-error" class="field-error" role="alert"></p>
+            <div class="upload-row">
+              <label class="upload-label" for="material-file">Or upload a file</label>
+              <input id="material-file" type="file" accept=".txt,.md,.pdf,.docx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" aria-describedby="upload-status">
+              <p id="upload-status" class="help-text" role="status" aria-live="polite"></p>
+            </div>
           </div>
 
           <div class="field-group topic-group">

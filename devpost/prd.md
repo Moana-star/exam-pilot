@@ -3,15 +3,15 @@ doc: prd
 status: approved
 ---
 
-# Course-Grounded Study Partner — Product Requirements
+# Course-Grounded Study Partner â€” Product Requirements
 
 A focused study app for university students that turns their own course material into active practice and feedback they can trace back to that material.
 Source: `scope.md > Who It's For`, `The Unique Kernel`, and `The Core Loop`. **ExamPilot** is the provisional working product name; the descriptive document title is retained for clarity.
 
 ## The Core Journey
 
-1. **Arrive and start.** The student opens the app and sees what it does, where to paste course material, where to enter a topic, and how to begin. No account or setup flow comes first.
-2. **Provide study material and topic.** The student pastes their own course material and types a topic they want to practice. Both fields are required.
+1. **Arrive and start.** The student opens the app and sees what it does, where to paste or upload course material, where to enter a topic, and how to begin. No account or setup flow comes first.
+2. **Provide study material and topic.** The student pastes their own course material or uploads a supported file, then types a topic they want to practice. Both material and topic are required.
 3. **Get one grounded question.** The student selects **Generate Question**. The app presents one focused question about the selected topic, based only on the material they supplied. It indicates that the supplied material was the basis for the question.
 4. **Answer in their own words.** The student writes a free-form answer and submits it. Multiple choice, timers, and configuration steps are not part of this flow.
 5. **Understand the evaluation.** The app labels the answer **Correct**, **Partially correct**, or **Needs improvement**; explains why; identifies supported points the student included and important supported points they missed or got wrong; and shows the relevant passage from the supplied material. The feedback helps the student improve their understanding rather than simply revealing a correct answer.
@@ -24,10 +24,10 @@ Source: `scope.md > The Core Loop` and `What "Working" Looks Like`.
 
 ### Starting screen
 
-- App name and short tagline at the top. The suggested tagline is “Turn your notes into practice.”
+- App name and short tagline at the top. The suggested tagline is â€œTurn your notes into practice.â€
 - A brief supporting line explains that questions and feedback use the student's own course material.
 - A large text area labeled **Paste your course material here**.
-- A simple instruction asks the student to paste material relevant to the topic they want to practice. The MVP supports up to approximately 5,000 words; no special formatting is required.
+- The text area remains the primary material input. Pasted material supports approximately 5,000 words. Offer an accessible alternative file picker for .txt, .md, .pdf, and .docx files up to 10 MB, without an extracted-word-count limit. PDFs must contain extractable text; scanned PDFs are not OCRd. Extracted text is placed in the same editable text area.
 - A topic field labeled **What topic do you want to practice?**
 - One prominent **Generate Question** button.
 - A nearby note says the question and feedback are based only on the supplied material.
@@ -64,19 +64,19 @@ Source: learner's PRD interview; supports `scope.md > Inspiration & Identity`.
 
 ### Material and topic entry
 
-- The student can paste course material and type a topic on the starting screen.
+- The student can paste course material or upload a supported file, review or edit its extracted text, and type a topic on the starting screen.
 - Both fields are required before question generation can proceed.
-- If the material is empty, show **“Please paste your course material first.”** near the material field.
-- If the topic is empty, show **“Please enter a topic to practice.”** near the topic field.
+- If the material is empty, show **â€œPlease paste your course material first.â€** near the material field.
+- If the topic is empty, show **â€œPlease enter a topic to practice.â€** near the topic field.
 - If both are empty, show both messages. Keep the fields available for correction in place; do not show a modal or technical error page.
 - Do not attempt question generation while either required field is empty.
-- Support up to approximately 5,000 words of pasted course material. Encourage the student to paste only material relevant to the chosen topic. Do not impose unnecessary formatting requirements or add document processing.
+- Support approximately 5,000 words of pasted material. Uploads accept any extracted word count, limited only to .txt, .md, text-based .pdf, and .docx files up to 10 MB; extract in memory only. Give friendly errors for unsupported, invalid, unreadable, encrypted, empty, or oversized files. Do not add OCR. Large prompts that the local model cannot handle follow the friendly request retry/error flow.
 
 Acceptance criteria:
 
 - Submitting with either required field empty shows the applicable inline message and does not start question generation.
 - When both fields contain input, the student can proceed directly to question generation.
-- Pasted material of up to approximately 5,000 words is accepted. If the student pastes substantially more, explain that the input is too long and ask them to paste a shorter, relevant selection.
+- Pasted material uses the existing approximately 5,000-word UI limit. Uploaded material is accepted regardless of extracted word count, subject to the 10 MB file-size limit.
 
 ### Grounded question generation
 
@@ -113,8 +113,8 @@ Acceptance criteria:
 
 ### Recoverable request failures
 
-- If question generation fails, show a friendly message such as **“Something went wrong while generating your question. Your material and topic are still here, so you can try again.”** Provide **Try Again** as the primary action and a secondary way to return to the previous step.
-- If evaluation fails, show a friendly message such as **“We couldn’t evaluate your answer right now. Your answer is still here, so you can try again.”** Provide **Try Again** as the primary action and a secondary way to return to the previous step.
+- If question generation fails, show a friendly message such as **â€œSomething went wrong while generating your question. Your material and topic are still here, so you can try again.â€** Provide **Try Again** as the primary action and a secondary way to return to the previous step.
+- If evaluation fails, show a friendly message such as **â€œWe couldnâ€™t evaluate your answer right now. Your answer is still here, so you can try again.â€** Provide **Try Again** as the primary action and a secondary way to return to the previous step.
 - Preserve the supplied material, selected topic, and answer as applicable so the student does not have to re-enter them.
 - Never show raw technical errors or fabricate a question, evaluation, or evidence as though a failed request succeeded. Sophisticated retry logic, offline AI, and automatic recovery are not required.
 
@@ -138,7 +138,7 @@ Acceptance criteria:
 
 - The MVP focuses on university students preparing for tests or exams who have course material but need help turning it into practice. This makes the intended user and problem specific. Source: `scope.md > Who It's For`.
 - The student's material is the sole source for both questions and feedback, and feedback must show traceable supporting evidence. This is the product's distinguishing value. Source: `scope.md > The Unique Kernel`.
-- The MVP accepts pasted material and a student-entered topic, then generates one question at a time. Uploads and automatic topic detection are excluded to keep the end-to-end experience reliable. Source: `scope.md > The POC Boundary` and `Explicitly Cut`.
+- The MVP accepts pasted or uploaded material and a student-entered topic, then generates one question at a time. Automatic topic detection remains excluded. Upload is a narrow addition approved after initial scope and does not change the grounded study loop.
 - Answers are free-form, not multiple choice, so students practice explaining their understanding.
 - Feedback uses qualitative labels and explanations, not numeric scores or gamification.
 - A fully offline system is not required; students do not depend on web searches or external study resources for study content. Reliability of the complete loop takes priority.
@@ -147,7 +147,7 @@ Acceptance criteria:
 
 ## What We're Building
 
-- One starting screen for pasted course material up to approximately 5,000 words and a student-entered topic, with a simple instruction to paste material relevant to that topic.
+- One starting screen for pasted course material with its approximately 5,000-word UI limit or uploaded course material limited only by the 10 MB file-size cap, and a student-entered topic. Upload accepts .txt, .md, text-based .pdf, and .docx and fills the same editable material field.
 - Required-field validation for material and topic.
 - One-question-at-a-time practice grounded only in supplied material.
 - A free-form answer step.
@@ -159,7 +159,7 @@ Acceptance criteria:
 
 ## Deferred From the POC
 
-- File or document uploads: pasted text is sufficient to demonstrate the study loop.
+- OCR and upload formats beyond .txt, .md, text-based .pdf, and .docx remain out of scope.
 - Automatic topic detection: the student chooses the topic to keep the MVP focused.
 - User accounts and authentication: not needed for a single-session proof of concept.
 - Dashboards and long-term progress tracking: not needed to demonstrate a grounded practice session.

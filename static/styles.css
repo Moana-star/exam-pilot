@@ -98,6 +98,10 @@ input { min-height: 50px; padding: 0 15px; }
 textarea::placeholder, input::placeholder { color: #909ba6; }
 textarea:focus, input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgb(22 115 111 / 13%); }
 .help-text { margin: 8px 0 0; }
+.upload-row { margin-top: 16px; padding-top: 15px; border-top: 1px solid var(--line); }
+.upload-label { margin-bottom: 7px; }
+.upload-row input[type="file"] { min-height: auto; padding: 10px; }
+.upload-row [role="status"] { min-height: 1.2em; }
 .topic-group { margin-bottom: 27px; }
 .field-error, .request-error { margin: 7px 0 0; color: var(--error); font-size: 0.88rem; }
 .request-error { margin: 0 0 18px; padding: 12px 14px; border-radius: 9px; background: #fbefed; }

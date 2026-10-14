@@ -1,6 +1,6 @@
 ---
 doc: checklist
-status: draft
+status: approved
 ---
 
 # Build Checklist
@@ -29,6 +29,16 @@ Build mode: fast
   Learner check: Complete the full study loop with your own short material. Check the label, included/missing points, and evidence against the notes, then try **Next Question** and return to change the topic.
   Commit: `Complete grounded evaluation and evidence flow`
 
+- [x] **3. Add in-memory course material uploads**
+  Becomes usable: The learner can upload a supported document, review or edit its extracted text in the existing material box, and use the unchanged grounded question and evaluation flow.
+  Why now: The initial PRD/spec deferred uploads; this focused learner-approved revision extends material entry while keeping the core study loop, evidence boundary, and browser-memory session intact.
+  PRD ref: `prd.md > Screens and Layout > Starting screen`; `prd.md > Features and Behavior > Material and topic entry`; `prd.md > States and Boundaries`.
+  Spec ref: `spec.md > Components > Study page and browser flow`; `spec.md > Components > Flask routes and input checks`; `spec.md > File Structure`; `spec.md > External Services and Dependencies`; `spec.md > Important Failure Modes`.
+  Build: Add accessible `.txt`, `.md`, text-based `.pdf`, and `.docx` upload; extract in memory into the current textarea; enforce the 10 MB file cap and no extracted-word-count cap, while keeping the approximately 5,000-word paste limit; preserve `/api/question` and `/api/evaluate` response contracts; provide friendly parser and upload errors; add only pypdf and python-docx.
+  Verify (mechanical): Exercise each supported format, malformed/empty/unsupported/encrypted/oversized inputs, supported and unsupported topics, evaluation and exact evidence validation, paste workflow, and refresh/close memory clearing. Confirm accepted extracted text uses the existing routes and no upload is persisted.
+  Learner check: Upload one of your course files, review the extracted text, then complete the usual question and answer flow.
+  Commit: Not requested; implementation remains uncommitted by learner instruction.
+
 ## Hands-on Checkpoints
 
 - [ ] Early usable behavior explored — after slice 1, review whether question generation and unsupported-topic recovery feel aligned with the approved PRD.
@@ -53,3 +63,4 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 ## Revisions
 
 - Switched the AI provider from OpenAI's hosted API to local Ollama `qwen2.5:3b` at the learner's request because OpenAI API credits are unavailable; retained the question JSON contract, grounding prompt, and exact evidence validation.
+- Added the learner-approved upload alternative after the original PRD/spec deferred it. This revision adds only in-memory extraction and leaves the material/question/evaluation pipeline and approved grounding rules intact. The learner explicitly requested implementation without a commit.

@@ -1,6 +1,8 @@
 # ExamPilot
 
-ExamPilot turns pasted course material into a focused practice question, then evaluates the student's answer with feedback grounded in those same notes.
+ExamPilot turns pasted or uploaded course material into a focused practice question, then evaluates the student's answer with feedback grounded in that same material.
+
+Pasting material is supported. You can also upload a `.txt`, `.md`, `.pdf`, or `.docx` file (up to 10 MB). Uploads are read in memory, converted to text, and placed in the same editable material box used by the paste workflow. PDF support is for text-based PDFs only; scanned/image-only PDFs are not OCR'd. Uploaded files are not saved.
 
 ## Run locally on Windows
 

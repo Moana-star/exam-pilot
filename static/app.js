@@ -1,7 +1,9 @@
-const MAX_WORDS = 5000;
+const MAX_PASTED_WORDS = 5000;
 
 const form = document.querySelector("#question-form");
 const materialInput = document.querySelector("#material");
+const materialFile = document.querySelector("#material-file");
+const uploadStatus = document.querySelector("#upload-status");
 const topicInput = document.querySelector("#topic");
 const wordCount = document.querySelector("#word-count");
 const generateButton = document.querySelector("#generate-button");
@@ -28,6 +30,7 @@ const session = {
   answer: "",
   step: "start",
   pending: false,
+  materialUploaded: false,
 };
 
 function countWords(text) {
@@ -37,8 +40,13 @@ function countWords(text) {
 
 function updateWordCount() {
   const count = countWords(materialInput.value);
-  wordCount.textContent = `${count.toLocaleString()} / about 5,000 words`;
-  wordCount.classList.toggle("over-limit", count > MAX_WORDS);
+  if (session.materialUploaded) {
+    wordCount.textContent = `${count.toLocaleString()} words`;
+    wordCount.classList.remove("over-limit");
+    return;
+  }
+  wordCount.textContent = `${count.toLocaleString()} / about ${MAX_PASTED_WORDS.toLocaleString()} words`;
+  wordCount.classList.toggle("over-limit", count > MAX_PASTED_WORDS);
 }
 
 function showView(view) {
@@ -80,7 +88,7 @@ function validateForm() {
     document.querySelector("#topic-error").textContent = "Please enter a topic to practice.";
     valid = false;
   }
-  if (countWords(materialInput.value) > MAX_WORDS) {
+  if (!session.materialUploaded && countWords(materialInput.value) > MAX_PASTED_WORDS) {
     document.querySelector("#material-error").textContent =
       "That material is too long. Please paste a shorter selection relevant to your topic.";
     valid = false;
@@ -251,6 +259,42 @@ function returnToStart(focusTarget) {
 }
 
 materialInput.addEventListener("input", updateWordCount);
+materialInput.addEventListener("paste", () => {
+  session.materialUploaded = false;
+  updateWordCount();
+});
+materialFile.addEventListener("change", async () => {
+  const file = materialFile.files[0];
+  uploadStatus.textContent = "";
+  uploadStatus.setAttribute("role", "status");
+  uploadStatus.setAttribute("aria-live", "polite");
+  document.querySelector("#material-error").textContent = "";
+  if (!file) return;
+  const body = new FormData();
+  body.append("file", file);
+  materialFile.disabled = true;
+  uploadStatus.textContent = "Reading your file…";
+  try {
+    const response = await fetch("/api/material", { method: "POST", body });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "We couldn’t read that file.");
+    if (typeof result.material !== "string" || !result.material.trim()) {
+      throw new Error("We couldn’t find readable text in that file. Try another file or paste your material.");
+    }
+    materialInput.value = result.material;
+    session.materialUploaded = true;
+    updateWordCount();
+    uploadStatus.textContent = `Loaded ${file.name} into the material box. You can review or edit it below.`;
+    materialInput.focus();
+  } catch (error) {
+    uploadStatus.setAttribute("role", "alert");
+    uploadStatus.setAttribute("aria-live", "assertive");
+    uploadStatus.textContent = error.message;
+    materialFile.value = "";
+  } finally {
+    materialFile.disabled = false;
+  }
+});
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   requestQuestion();

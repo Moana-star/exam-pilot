@@ -1,23 +1,17 @@
 import json
 import logging
-from urllib.error import URLError
+import time
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from typing import Any
 
+from context_service import SelectedContext, select_relevant_context
 
 logger = logging.getLogger(__name__)
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 OLLAMA_MODEL = "qwen2.5:3b"
 
-
-def _safe_error_message(exc: Exception, *, material: str, topic: str) -> str:
-    """Return brief diagnostic text without credentials or learner input."""
-    message = str(getattr(exc, "message", "") or exc)
-    for sensitive_text in (material, topic):
-        if sensitive_text:
-            message = message.replace(sensitive_text, "[redacted learner input]")
-    return " ".join(message.split())[:500]
 
 QUESTION_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -128,7 +122,7 @@ class OllamaRequestError(Exception):
 
 
 def _request_ollama(
-    *, instructions: str, data: dict[str, str], schema: dict[str, Any], material: str
+    *, instructions: str, data: dict[str, str], schema: dict[str, Any], operation: str,
 ) -> Any:
     system_prompt = (
         f"{instructions}\n\n"
@@ -150,24 +144,66 @@ def _request_ollama(
         headers={"Content-Type": "application/json"},
         method="POST",
     )
+    started_at = time.monotonic()
     try:
         with urlopen(request, timeout=300) as response:
             response_data = json.loads(response.read().decode("utf-8"))
         if not isinstance(response_data, dict):
+            logger.warning("Ollama operation=%s response_type=%s", operation, type(response_data).__name__)
             raise ValueError("Unexpected Ollama response structure")
         if not response_data.get("done") or not response_data.get("response"):
+            logger.warning(
+                "Ollama operation=%s incomplete done=%s response_type=%s",
+                operation,
+                response_data.get("done"),
+                type(response_data.get("response")).__name__,
+            )
             raise ValueError("Ollama response was incomplete")
-        return json.loads(response_data["response"])
-    except (URLError, TimeoutError, OSError, ValueError, TypeError, KeyError) as exc:
-        logger.warning(
-            "Local model request failed category=%s message=%s",
+        parsed = json.loads(response_data["response"])
+        logger.info(
+            "Ollama operation=%s response_type=%s response_chars=%d",
+            operation,
+            type(parsed).__name__,
+            len(response_data["response"]),
+        )
+        return parsed
+    except HTTPError as exc:
+        logger.error(
+            "Ollama operation=%s http_status=%d failure_class=%s failure=%s",
+            operation,
+            exc.code,
             type(exc).__name__,
-            _safe_error_message(exc, material=material, topic=""),
+            str(exc)[:300],
+        )
+        raise OllamaRequestError("Local Ollama HTTP request failed") from exc
+    except (URLError, TimeoutError, OSError, ValueError, TypeError, KeyError) as exc:
+        # Exception messages here contain transport/parser diagnostics only; never
+        # log the request payload or the model's response body.
+        logger.error(
+            "Ollama operation=%s failure_class=%s failure=%s",
+            operation,
+            type(exc).__name__,
+            str(exc)[:300],
         )
         raise OllamaRequestError("Local model request failed") from exc
+    finally:
+        logger.info(
+            "Ollama operation=%s elapsed_ms=%d",
+            operation,
+            round((time.monotonic() - started_at) * 1000),
+        )
 
 
-def _validate_question_result(value: Any, material: str) -> dict[str, str]:
+def _validate_question_result(
+    value: Any, context: str | SelectedContext, source_material: str
+) -> dict[str, str]:
+    if isinstance(context, SelectedContext):
+        if not context.maps_to(source_material):
+            logger.warning("Question evidence validation failed category=context_source_mapping")
+            raise QuestionGenerationError("Selected context did not map to original material")
+        context_text = context.text
+    else:
+        context_text = context
     fields = {"status", "question", "explanation", "evidence_excerpt"}
     if not isinstance(value, dict) or set(value) != fields:
         raise QuestionGenerationError("Unexpected response structure")
@@ -183,8 +219,30 @@ def _validate_question_result(value: Any, material: str) -> dict[str, str]:
 
     if value["status"] == "supported":
         excerpt = value["evidence_excerpt"]
-        if not value["question"].strip() or not excerpt or excerpt not in material:
+        # The model was shown `context`, so its citation must be an exact
+        # substring of that prompt. Also require it verbatim in the original
+        # source because this is the text the browser will display.
+        if (
+            not value["question"].strip()
+            or not excerpt
+        ):
             raise QuestionGenerationError("Question evidence did not match material")
+        if excerpt not in context_text:
+            logger.warning(
+                "Question evidence validation failed category=context_mismatch context_chars=%d evidence_chars=%d",
+                len(context_text), len(excerpt),
+            )
+            raise QuestionGenerationError("Question evidence did not match supplied context")
+        if excerpt not in source_material:
+            logger.warning(
+                "Question evidence validation failed category=original_material_mismatch evidence_chars=%d",
+                len(excerpt),
+            )
+            raise QuestionGenerationError("Question evidence did not match original material")
+        logger.info(
+            "Question evidence validation passed context_chars=%d evidence_chars=%d",
+            len(context_text), len(excerpt),
+        )
     elif value["question"] or value["evidence_excerpt"]:
         raise QuestionGenerationError("Unsupported topic included a question")
 
@@ -192,22 +250,53 @@ def _validate_question_result(value: Any, material: str) -> dict[str, str]:
 
 
 def generate_question(*, material: str, topic: str) -> dict[str, str]:
-    """Ask the local Ollama model for a grounded, schema-constrained question."""
+    """Ask Ollama using topic-relevant source passages and validate to full source."""
+    context = select_relevant_context(material, topic)
+    logger.info("Ollama operation=question selected_context_chars=%d", len(context.text))
+    if not context.text.strip():
+        return {
+            "status": "unsupported",
+            "question": "",
+            "explanation": (
+                "The supplied material does not contain passages that clearly cover "
+                "this topic. Choose a topic found in your material or add relevant material."
+            ),
+            "evidence_excerpt": "",
+        }
     try:
         result = _request_ollama(
             instructions=QUESTION_INSTRUCTIONS,
-            data={"topic": topic, "course_material": material},
+            data={"topic": topic, "course_material": context.text},
             schema=QUESTION_SCHEMA,
-            material=material,
+            operation="question",
         )
-        return _validate_question_result(result, material)
-    except QuestionGenerationError:
+        return _validate_question_result(result, context, material)
+    except QuestionGenerationError as exc:
+        logger.warning(
+            "Question generation rejected response failure_class=%s failure=%s",
+            type(exc).__name__,
+            str(exc)[:200],
+        )
         raise
     except OllamaRequestError as exc:
+        logger.error(
+            "Question generation failed failure_class=%s cause_class=%s cause=%s",
+            type(exc).__name__,
+            type(exc.__cause__).__name__ if exc.__cause__ else "none",
+            str(exc.__cause__)[:300] if exc.__cause__ else "",
+        )
         raise QuestionGenerationError("Question request failed") from exc
 
 
-def _validate_evaluation_result(value: Any, material: str) -> dict[str, Any]:
+def _validate_evaluation_result(
+    value: Any, context: str | SelectedContext, source_material: str
+) -> dict[str, Any]:
+    if isinstance(context, SelectedContext):
+        if not context.maps_to(source_material):
+            raise AnswerEvaluationError("Selected context did not map to original material")
+        context_text = context.text
+    else:
+        context_text = context
     fields = {
         "label",
         "explanation",
@@ -239,8 +328,10 @@ def _validate_evaluation_result(value: Any, material: str) -> dict[str, Any]:
             ):
                 raise AnswerEvaluationError("Unexpected evaluation point structure")
             excerpt = point["evidence_excerpt"]
-            if excerpt and excerpt not in material:
-                raise AnswerEvaluationError("Evaluation evidence did not match material")
+            if excerpt and excerpt not in context_text:
+                raise AnswerEvaluationError("Evaluation evidence did not match supplied context")
+            if excerpt and excerpt not in source_material:
+                raise AnswerEvaluationError("Evaluation evidence did not match original material")
 
     return value
 
@@ -248,20 +339,23 @@ def _validate_evaluation_result(value: Any, material: str) -> dict[str, Any]:
 def evaluate_answer(
     *, material: str, topic: str, question: str, answer: str
 ) -> dict[str, Any]:
-    """Evaluate an answer locally and validate all feedback evidence."""
+    """Evaluate with topic-relevant source passages and validate against full source."""
+    context = select_relevant_context(material, topic)
+    if not context.text.strip():
+        raise AnswerEvaluationError("No topic-relevant source passages were found")
     try:
         result = _request_ollama(
             instructions=EVALUATION_INSTRUCTIONS,
             data={
                 "topic": topic,
-                "course_material": material,
+                "course_material": context.text,
                 "question": question,
                 "student_answer": answer,
             },
             schema=EVALUATION_SCHEMA,
-            material=material,
+            operation="evaluation",
         )
-        return _validate_evaluation_result(result, material)
+        return _validate_evaluation_result(result, context, material)
     except AnswerEvaluationError:
         raise
     except OllamaRequestError as exc:

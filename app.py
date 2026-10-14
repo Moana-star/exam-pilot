@@ -1,4 +1,8 @@
+from io import BytesIO
+
 from flask import Flask, jsonify, render_template, request
+from flask.wrappers import Request
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from ai_service import (
     AnswerEvaluationError,
@@ -6,21 +10,54 @@ from ai_service import (
     evaluate_answer,
     generate_question,
 )
+from material_service import MaterialExtractionError, extract_material
 
 
-MAX_MATERIAL_WORDS = 5_000
+MAX_PASTED_WORDS = 5_000
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+MAX_UPLOAD_REQUEST_BYTES = MAX_UPLOAD_BYTES + 64 * 1024
+
+
+class MemoryOnlyRequest(Request):
+    """Keep multipart file streams in memory instead of Werkzeug temp files."""
+
+    def _get_file_stream(
+        self, total_content_length, content_type, filename=None, content_length=None
+    ):
+        return BytesIO()
+
 
 app = Flask(__name__)
-
-
-def count_words(text: str) -> int:
-    """Count whitespace-separated words, matching the browser's approximation."""
-    return len(text.split())
+app.request_class = MemoryOnlyRequest
+app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_REQUEST_BYTES
 
 
 @app.get("/")
 def index():
     return render_template("index.html")
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def upload_too_large(_error):
+    return jsonify(
+        error="That request is too large. Choose a file no larger than 10 MB or paste a shorter material selection."
+    ), 413
+
+
+@app.post("/api/material")
+def upload_material():
+    uploaded = request.files.get("file")
+    if uploaded is None or not uploaded.filename:
+        return jsonify(error="Choose a course material file to upload."), 400
+    if uploaded.stream.getbuffer().nbytes > MAX_UPLOAD_BYTES:
+        return jsonify(error="That file is too large. Choose a file no larger than 10 MB."), 413
+    try:
+        material = extract_material(uploaded.filename, uploaded.stream)
+    except MaterialExtractionError as error:
+        return jsonify(error=str(error)), 400
+    if not material.strip():
+        return jsonify(error="We couldn’t find readable text in that file. Try another file or paste your material."), 400
+    return jsonify(material=material)
 
 
 @app.post("/api/question")
@@ -35,17 +72,6 @@ def question():
         return jsonify(error="Please paste your course material first."), 400
     if not isinstance(topic, str) or not topic.strip():
         return jsonify(error="Please enter a topic to practice."), 400
-    if count_words(material) > MAX_MATERIAL_WORDS:
-        return (
-            jsonify(
-                error=(
-                    "That material is too long. Please paste a shorter selection "
-                    "relevant to your topic. Your text is still here to edit."
-                )
-            ),
-            413,
-        )
-
     try:
         result = generate_question(material=material, topic=topic)
     except QuestionGenerationError:
@@ -80,17 +106,6 @@ def evaluation():
         return jsonify(error="Please generate a question before submitting an answer."), 400
     if not isinstance(answer, str) or not answer.strip():
         return jsonify(error="Please write an answer first."), 400
-    if count_words(material) > MAX_MATERIAL_WORDS:
-        return (
-            jsonify(
-                error=(
-                    "That material is too long. Please paste a shorter selection "
-                    "relevant to your topic. Your text is still here to edit."
-                )
-            ),
-            413,
-        )
-
     try:
         result = evaluate_answer(
             material=material,

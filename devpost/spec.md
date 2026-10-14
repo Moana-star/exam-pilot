@@ -7,15 +7,17 @@ status: approved
 
 ## How This Works, In Plain Language
 
-ExamPilot is one small Python web app. Flask serves the study page and receives two requests from it: one to make a question and another to evaluate an answer. The browser keeps the current study session in memory while the page is open. Flask sends relevant text to the locally running Ollama model, checks the complete structured result, and only then returns it to the page.
+ExamPilot is one small Python web app. Flask serves the study page and receives an optional upload-extraction request plus the existing question-generation and answer-evaluation requests. The browser keeps the current study session in memory while the page is open. Flask sends relevant text to the locally running Ollama model, checks the complete structured result, and only then returns it to the page.
 
-The app uses the student's pasted material as its only study source. The server checks each non-empty evidence excerpt against the original material before displaying the result. There is no database, account system, or study history. AI requests go to Ollama at `http://127.0.0.1:11434` using `qwen2.5:3b`; no API key, paid external AI API, or internet connection is required.
+The app uses the student's pasted or uploaded material as its only study source. Uploaded files are extracted in memory and placed in the same editable material field; question and evaluation then use the existing routes. The server checks each non-empty evidence excerpt against the original material before displaying the result. There is no database, account system, or study history. AI requests go to Ollama at `http://127.0.0.1:11434` using `qwen2.5:3b`; no API key, paid external AI API, or internet connection is required.
 
 ## The Core Journey Through the System
 
 ```mermaid
 flowchart LR
-  A[Paste material and choose topic] --> B[Browser checks fields and word count]
+  A[Paste material or upload file and choose topic] --> B[Browser checks fields and word count]
+  A --> U[POST /api/material extracts text in memory]
+  U --> B
   B --> C[POST /api/question]
   C --> D[Flask validates input]
   D --> E[Local Ollama: question schema]
@@ -44,7 +46,7 @@ flowchart LR
 - **Python 3.11 or newer and Flask 3.x.** One local server handles the page and the two JSON routes. Python is familiar to the learner; Flask's quickstart describes a minimal app and local run command. [Flask Quickstart](https://flask.palletsprojects.com/en/stable/quickstart/)
 - **Plain HTML, CSS, and JavaScript.** The browser uses a single page with sections shown or hidden for the start, question, feedback, and recovery states. No separate frontend server, framework, or build step is needed.
 - **Ollama local API.** Flask sends non-streaming requests to `http://127.0.0.1:11434/api/generate` with model `qwen2.5:3b` and a JSON Schema response format. Python's standard library handles HTTP and JSON; no AI client SDK or external account is required.
-- **No other runtime dependencies are planned.** The browser uses built-in web features; there is no database, authentication, vector search, embeddings, upload service, analytics, or hosting service. Flask is the only pinned runtime dependency.
+- **Runtime dependencies:** Flask, pypdf, and python-docx. The browser uses built-in web features; there is no database, authentication, vector search, embeddings, hosted upload service, analytics, or hosting service.
 
 ## Where It Runs and How Someone Tries It
 
@@ -67,9 +69,9 @@ Carry forward `prd.md > Look and Feel`: calm, academic, readable, and uncluttere
 
 ### Study page and browser flow
 
-`templates/index.html`, `static/styles.css`, and `static/app.js` implement the starting, question, feedback, unsupported-topic, loading, and recoverable-error states as one page. JavaScript stores current values in ordinary page memory and makes same-origin `fetch` requests to Flask. It disables the active submit button while a request is running, then re-enables it after success or failure. Render model text as text, not injected HTML.
+`templates/index.html`, `static/styles.css`, and `static/app.js` implement the starting, question, feedback, unsupported-topic, loading, and recoverable-error states as one page. An accessible file picker accepts `.txt`, `.md`, `.pdf`, and `.docx`; extracted text fills the existing textarea for review and editing. JavaScript stores current values in ordinary page memory and makes same-origin `fetch` requests to Flask. It disables the active submit button while a request is running, then re-enables it after success or failure. Render model text as text, not injected HTML.
 
-The browser performs the whitespace-separated word count for immediate feedback. It does not call Ollama directly. On request failure it keeps the material, topic, question, and answer relevant to that step available and presents **Try Again**. Refreshing the page or closing the tab clears the entire session.
+The browser performs the whitespace-separated word count for immediate feedback on pasted material (approximately 5,000 words). Uploads go to multipart `POST /api/material`; Flask extracts supported files in memory and returns non-empty text regardless of word count. A 10 MB per-file cap and 64 KB multipart-overhead allowance bound requests. Uploaded files are not saved to disk. The browser inserts extracted text into the existing textarea and then uses `/api/question` and `/api/evaluate`. Large prompts that the local model cannot process follow the existing friendly retry/error flow. It does not call Ollama directly. On request failure it keeps the material, topic, question, and answer relevant to that step available and presents **Try Again**. Refreshing the page or closing the tab clears the entire session.
 
 PRD refs: `prd.md > Screens and Layout`, `prd.md > Features and Behavior > Material and topic entry`, `prd.md > Features and Behavior > Recoverable request failures`, and `prd.md > States and Boundaries`.
 
@@ -79,8 +81,9 @@ PRD refs: `prd.md > Screens and Layout`, `prd.md > Features and Behavior > Mater
 
 - `POST /api/question` accepts `{"material": "...", "topic": "..."}`.
 - `POST /api/evaluate` accepts `{"material": "...", "topic": "...", "question": "...", "answer": "..."}`.
+- `POST /api/material` accepts multipart field `file` and returns the extracted `material`; it does not alter the existing JSON route contracts.
 
-Both routes check required values and apply the same whitespace-separated material word count before any Ollama request. The server check is authoritative: material over approximately 5,000 words is rejected without sending it to the local model. Return a friendly, field-level message and do not erase the material. Keep the original material string unchanged for exact excerpt checks. Use ordinary HTTP JSON responses; no cross-origin setup is needed because Flask serves both page and routes.
+Both routes check required values and pass the supplied material to Ollama; model or request failures use the existing friendly retry flow. The browser enforces approximately 5,000 words for text entered by paste. Multipart `POST /api/material` accepts one file up to 10 MB and extracts supported formats in memory, with no extracted-word-count limit. Multipart file streams use memory buffers rather than temporary files. Return friendly errors without raw exceptions. Keep the original material string unchanged for exact excerpt checks. Use ordinary HTTP JSON responses; no cross-origin setup is needed because Flask serves both page and routes.
 
 PRD refs: `prd.md > Features and Behavior > Material and topic entry`, `prd.md > Features and Behavior > Grounded question generation`, and `prd.md > Features and Behavior > Answer and grounded feedback`.
 
@@ -131,7 +134,7 @@ material, topic, currentQuestion, currentAnswer, currentEvaluation,
 currentStep, pendingRequest, visibleError
 ```
 
-The browser creates material and topic from the starting form, keeps them while moving through the page, and sends them to the appropriate Flask route on demand. Flask validates the request and forwards the relevant values to local Ollama. The response returns through Flask after validation; the browser stores the accepted question or evaluation in memory for display. No request or result is written to local/session storage, cookies, a database, or a history log by ExamPilot. Refreshing or closing the page discards all session values.
+The browser obtains material by paste or by placing accepted upload text into the starting form. It keeps material and topic while moving through the page and sends them to the appropriate Flask route on demand. Flask validates the request and forwards the relevant values to local Ollama. The response returns through Flask after validation; the browser stores the accepted question or evaluation in memory for display. No request or result is written to local/session storage, cookies, a database, or a history log by ExamPilot. Refreshing or closing the page discards all session values.
 
 On a failed request, retain the inputs and current accepted screen so **Try Again** can repeat the request. On **Next Question**, do not replace the current feedback until a new question has passed server validation. The local Ollama service receives prompts on the same machine; ExamPilot does not persist them.
 
@@ -140,13 +143,14 @@ On a failed request, retain the inputs and current accepted screen so **Try Agai
 ```text
 exam-pilot/
 ├── app.py                    # Flask page and JSON routes; input checks
+├── material_service.py       # In-memory TXT, Markdown, PDF, and DOCX extraction
 ├── ai_service.py             # Local Ollama calls, instructions, schemas, validation
 ├── templates/
 │   └── index.html            # Single-page study flow
 ├── static/
 │   ├── styles.css            # Calm academic presentation
 │   └── app.js                # Page-memory state, validation, loading and transitions
-├── requirements.txt          # Pinned Flask dependency
+├── requirements.txt          # Flask and document extraction dependencies
 ├── README.md                 # Local setup, environment variable, run/demo steps
 ├── .gitignore                # Virtual environment and Python-generated files
 └── devpost/
@@ -171,11 +175,12 @@ exam-pilot/
 
 ### Local dependencies
 
-Install Flask from `requirements.txt`. No AI SDK or hosted service is required. Use a Python virtual environment so package installation stays isolated from the learner's other projects.
+Install dependencies from `requirements.txt`. pypdf extracts text from text-based PDFs; scanned PDFs are not OCR'd. python-docx extracts paragraphs and table text. Text and Markdown use standard-library UTF-8-with-BOM decoding. No AI SDK or hosted service is required. Use a Python virtual environment so package installation stays isolated from the learner's other projects.
 
 ## Important Failure Modes
 
-- **Material or topic missing / material too long** → show a nearby friendly message; do not call Ollama; preserve the text for editing. The server repeats the length check before either route.
+- **Material or topic missing / pasted material too long** → show a nearby friendly message; do not call Ollama; preserve the text for editing. Pasted text is capped at approximately 5,000 words in the form.
+- **Upload unsupported, unreadable, encrypted, empty, or over 10 MB** → show a friendly message without raw exceptions. Extracted word count does not restrict uploads. Scanned PDFs may contain no extractable text and are not OCR'd.
 - **Topic unsupported by the notes** → show the returned explanation and **Choose Another Topic** / **Add More Material**. Treat this as a normal study state, not an API failure.
 - **Ollama request fails, times out, or returns an unusable result** → show the PRD's friendly request-failure copy, preserve relevant page-memory values, and offer **Try Again**. Do not show raw technical errors or automatically retry.
 - **JSON/schema/enum validation or evidence check fails** → reject the entire result before display, preserve the current session, and show **Try Again**. Do not repair quotes, invent evidence, or display partial output.
@@ -187,7 +192,7 @@ Install Flask from `requirements.txt`. No AI SDK or hosted service is required. 
 - **One local Ollama model and two direct requests** instead of agents, tools, or multi-step orchestration → matches the PRD's generate-one-question / evaluate-one-answer loop.
 - **Raw JSON Schema plus Python built-ins** instead of another validation package → Structured Outputs provides constrained shape, while small explicit checks enforce field and exact-evidence rules.
 - **Page-memory session only** instead of persistence → the PRD demonstrates one study session and explicitly excludes accounts and long-term progress.
-- **No database, uploads, embeddings, vector search, web search, accounts, analytics, or deployment service** → none is needed to prove the approved kernel or demo.
+- **No database, persistent file storage, OCR, embeddings, vector search, web search, accounts, analytics, or deployment service** → none is needed to prove the approved kernel or demo.
 - **No streaming, automatic retries, or background work** → show only complete, validated responses; a user-triggered retry is enough for the MVP.
 
 ## Decisions and Open Issues
@@ -197,7 +202,8 @@ Install Flask from `requirements.txt`. No AI SDK or hosted service is required. 
 - **Learner-approved study state:** browser/page memory only. Preserve relevant material, topic, question, and answer on request failure. Refreshing or closing the page clears the session. Do not use `sessionStorage`, `localStorage`, cookies for study persistence, databases, accounts, or long-term tracking.
 - **Learner-approved grounding and evidence:** separate app instructions from untrusted notes/answers; ignore embedded instructions; question generation uses only supplied material and evaluation only judges against it; no web or external tools. Every non-empty evidence excerpt must exactly match the original material. Empty feedback evidence is allowed and must be called out visibly without suggesting verification.
 - **Learner-approved request handling:** non-streaming calls; visible loading state; prevent duplicate submissions; validate completed structure and every non-empty quote before display; preserve state and offer a friendly **Try Again** after failures; no automatic retry.
-- **Learner-approved input boundary:** whitespace-separated browser counter and authoritative Flask check for approximately 5,000 words on both routes; oversized text is not sent to Ollama and remains editable.
+- **Learner-approved input boundary:** pasted material is limited to approximately 5,000 words in the browser. Uploads have a 10 MB file-size cap and no extracted-word-count limit; large model prompts use the existing request-failure flow.
+- **Learner-approved upload addition:** `.txt`, `.md`, `.pdf`, and `.docx` up to 10 MB; extract in memory into the existing material field without a word-count cap. Text PDFs only, no OCR. Question/evaluation response contracts remain unchanged.
 - **Local model data handling:** ExamPilot does not persist study data; requests go to the local Ollama service.
 - **Derived implementation choice:** define the two small response schemas in Python dictionaries and use the standard library's `json` parser plus explicit validators rather than adding Pydantic or a JSON Schema package. This keeps dependencies few; the validators must be covered during the build's verification work.
 - **Important limitation to carry into implementation:** exact substring verification proves that a quote occurs in the original notes, not that the model interpreted it correctly. Inspect representative outputs and keep feedback clearly tied to evidence.

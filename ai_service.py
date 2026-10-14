@@ -491,6 +491,7 @@ def _fallback_evaluation(
     # don't join wrapped PDF lines and accidentally manufacture a quotation.
     for start, end in context.source_spans:
         span = material[start:end]
+        span_is_topic_relevant = bool(tokens(span) & topic_tokens)
         for raw_sentence in re.split(r"(?<=[.!?])\s+", span):
             sentence = raw_sentence.strip()
             if not sentence or sentence not in material or sentence not in context.text:
@@ -501,7 +502,12 @@ def _fallback_evaluation(
             relevance = 3 * len(sentence_tokens & topic_tokens) + len(
                 sentence_tokens & question_tokens
             )
-            if relevance > 0 and all(sentence != item[0] for item in candidates):
+            # The context selector has already chosen topic-relevant source spans.
+            # Keep supporting detail sentences even if they don't repeat the topic
+            # words (for example, "The program counter stores...").
+            if (relevance > 0 or span_is_topic_relevant) and all(
+                sentence != item[0] for item in candidates
+            ):
                 candidates.append((sentence, sentence_tokens, relevance))
 
     if not candidates:

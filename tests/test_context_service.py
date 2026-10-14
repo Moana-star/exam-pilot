@@ -367,7 +367,7 @@ class ContextSelectionTests(unittest.TestCase):
                 answer="The PCB stores the process state, program counter, CPU registers, and memory management information.",
             )
 
-        self.assertIn(result["label"], {"Correct", "Partially correct", "Needs improvement"})
+        self.assertIn(result["label"], {"Partially correct", "Needs improvement"})
         self.assertIn("word-match check", result["explanation"])
         self.assertIsInstance(result["included_points"], list)
         self.assertIsInstance(result["missing_or_incorrect_points"], list)

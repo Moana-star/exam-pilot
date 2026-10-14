@@ -209,13 +209,13 @@ def _best_exact_evidence(context_text: str, topic: str, question: str, source_ma
     def tokens(text: str) -> set[str]:
         return {
             token.casefold()
-            for token in re.findall(r"[^\\W_]+", text, flags=re.UNICODE)
+            for token in re.findall(r"[^\W_]+", text, flags=re.UNICODE)
             if token.casefold() not in stop_words
         }
 
     topic_tokens = tokens(topic)
     question_tokens = tokens(question)
-    candidates = re.split(r"(?<=[.!?])\\s+|\\n+", context_text)
+    candidates = re.split(r"(?<=[.!?])\s+|\n+", context_text)
     best_excerpt = ""
     best_score = float("-inf")
 
@@ -230,8 +230,8 @@ def _best_exact_evidence(context_text: str, topic: str, question: str, source_ma
         candidate_tokens = tokens(candidate)
         topic_overlap = len(candidate_tokens & topic_tokens)
         question_overlap = len(candidate_tokens & question_tokens)
-        phrase = " ".join(re.findall(r"[^\\W_]+", topic.casefold(), flags=re.UNICODE))
-        candidate_phrase = " ".join(re.findall(r"[^\\W_]+", candidate.casefold(), flags=re.UNICODE))
+        phrase = " ".join(re.findall(r"[^\W_]+", topic.casefold(), flags=re.UNICODE))
+        candidate_phrase = " ".join(re.findall(r"[^\W_]+", candidate.casefold(), flags=re.UNICODE))
         phrase_bonus = 2.0 if phrase and phrase in candidate_phrase else 0.0
         score = topic_overlap * 4.0 + question_overlap + phrase_bonus
         if re.search(r"[.!?;]$", candidate):

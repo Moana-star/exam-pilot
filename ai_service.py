@@ -381,7 +381,13 @@ def generate_question(*, material: str, topic: str) -> dict[str, str]:
 
 
 def _validate_evaluation_result(
-    value: Any, context: str | SelectedContext, source_material: str
+    value: Any,
+    context: str | SelectedContext,
+    source_material: str,
+    *,
+    repair_evidence: bool = False,
+    topic: str = "",
+    question: str = "",
 ) -> dict[str, Any]:
     if isinstance(context, SelectedContext):
         if not context.maps_to(source_material):
@@ -420,10 +426,31 @@ def _validate_evaluation_result(
             ):
                 raise AnswerEvaluationError("Unexpected evaluation point structure")
             excerpt = point["evidence_excerpt"]
-            if excerpt and excerpt not in context_text:
-                raise AnswerEvaluationError("Evaluation evidence did not match supplied context")
-            if excerpt and excerpt not in source_material:
-                raise AnswerEvaluationError("Evaluation evidence did not match original material")
+            if excerpt and (excerpt not in context_text or excerpt not in source_material):
+                if not repair_evidence:
+                    if excerpt not in context_text:
+                        raise AnswerEvaluationError("Evaluation evidence did not match supplied context")
+                    raise AnswerEvaluationError("Evaluation evidence did not match original material")
+                repaired_excerpt = _best_exact_evidence(
+                    context,
+                    topic,
+                    f"{question} {point['point']}",
+                    source_material,
+                )
+                if not repaired_excerpt:
+                    logger.warning(
+                        "Evaluation evidence repair unavailable topic_chars=%d point_chars=%d",
+                        len(topic),
+                        len(point["point"]),
+                    )
+                    raise AnswerEvaluationError("No exact supporting evaluation evidence was available")
+                logger.warning(
+                    "Evaluation model citation replaced with exact source passage "
+                    "context_chars=%d evidence_chars=%d",
+                    len(context_text),
+                    len(repaired_excerpt),
+                )
+                point["evidence_excerpt"] = repaired_excerpt
 
     return value
 
@@ -447,7 +474,14 @@ def evaluate_answer(
             schema=EVALUATION_SCHEMA,
             operation="evaluation",
         )
-        return _validate_evaluation_result(result, context, material)
+        return _validate_evaluation_result(
+            result,
+            context,
+            material,
+            repair_evidence=True,
+            topic=topic,
+            question=question,
+        )
     except AnswerEvaluationError:
         raise
     except OllamaRequestError as exc:

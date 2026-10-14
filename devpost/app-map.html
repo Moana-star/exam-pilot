@@ -97,7 +97,7 @@
         <li><strong>Untrusted input:</strong> notes and answers are passed as data, separate from trusted application instructions.</li>
         <li><strong>In-memory session:</strong> the app does not save uploaded files or keep a study history; refresh/close clears the browser session.</li>
         <li><strong>Bounded uploads:</strong> supported file types are TXT, Markdown, text-based PDF, and DOCX, up to 10 MB. Scanned PDFs and OCR are out of scope.</li>
-        <li><strong>Recoverable failures:</strong> malformed model output or failed requests should not become invented questions or feedback; the app offers a retry path.</li>
+        <li><strong>Recoverable failures:</strong> question generation still rejects unusable model output rather than inventing a question. If answer evaluation fails or cannot pass evidence validation, the app switches to an explicitly disclosed, conservative word-match fallback with exact source excerpts; it never labels fallback feedback “Correct.”</li>
       </ul>
       <p class="note caution"><strong>Important limitation:</strong> local model output can still be wrong or unhelpful even when its quoted evidence exists in the notes. The learner should compare the explanation and feedback with the source. The app is a study aid, not an authority on course content.</p>
     </section>

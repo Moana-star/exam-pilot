@@ -94,6 +94,34 @@ class ContextSelectionTests(unittest.TestCase):
         self.assertIn(repaired["evidence_excerpt"], material)
         self.assertIn(repaired["evidence_excerpt"], request.call_args.kwargs["data"]["course_material"])
 
+
+    def test_repair_selects_verbatim_evidence_from_pdf_wrapped_lines(self):
+        material = (
+            "# Process Control Block\r\n"
+            "A Process Control Block stores information about a process, including its current state,\r\n"
+            "program counter, CPU registers, and scheduling information.\r\n"
+        )
+        response = {
+            "status": "supported",
+            "question": "Which information about a process is stored in its PCB?",
+            "explanation": "The supplied notes describe the information stored in a PCB.",
+            "evidence_excerpt": "The PCB keeps all process information, including the state and registers.",
+        }
+
+        with patch.object(ai_service, "_request_ollama", return_value=response):
+            result = ai_service.generate_question(
+                material=material, topic="Process Control Block"
+            )
+
+        self.assertEqual(
+            result["evidence_excerpt"],
+            "A Process Control Block stores information about a process, including its current state,\r\n"
+            "program counter, CPU registers, and scheduling information.",
+        )
+        self.assertIn(result["evidence_excerpt"], material)
+        selected = select_relevant_context(material, "Process Control Block")
+        self.assertIn(result["evidence_excerpt"], selected.text)
+
     def test_large_relevant_section_is_bounded_but_evidence_uses_full_source(self):
         evidence = "During a context switch, the operating system saves the process state in its PCB."
         material = (

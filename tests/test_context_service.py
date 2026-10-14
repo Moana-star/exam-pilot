@@ -339,9 +339,12 @@ class ContextSelectionTests(unittest.TestCase):
                 },
             )
 
-        self.assertEqual(response.status_code, 503)
-        self.assertIn("try again", response.get_json()["error"].lower())
-        self.assertNotIn("all information about CPU scheduling", response.get_data(as_text=True))
+        self.assertEqual(response.status_code, 200, response.get_data(as_text=True))
+        result = response.get_json()
+        self.assertEqual(result["label"], "Correct")
+        repaired = result["included_points"][0]["evidence_excerpt"]
+        self.assertIn(repaired, material)
+        self.assertNotEqual(repaired, "A PCB stores all information about CPU scheduling.")
 
 
 if __name__ == "__main__":

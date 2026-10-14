@@ -37,7 +37,7 @@ Build mode: fast
   Build: Add accessible `.txt`, `.md`, text-based `.pdf`, and `.docx` upload; extract in memory into the current textarea; enforce the 10 MB file cap and no extracted-word-count cap, while keeping the approximately 5,000-word paste limit; preserve `/api/question` and `/api/evaluate` response contracts; provide friendly parser and upload errors; add only pypdf and python-docx.
   Verify (mechanical): Exercise each supported format, malformed/empty/unsupported/encrypted/oversized inputs, supported and unsupported topics, evaluation and exact evidence validation, paste workflow, and refresh/close memory clearing. Confirm accepted extracted text uses the existing routes and no upload is persisted.
   Learner check: Upload one of your course files, review the extracted text, then complete the usual question and answer flow.
-  Commit: Not requested; implementation remains uncommitted by learner instruction.
+  Commit: Included in commit `91d6b08` (`Improve source-grounded study question generation`), subsequently published to the public `main` branch. Automated and hands-on verification still need to be completed.
 
 ## Hands-on Checkpoints
 
@@ -63,4 +63,4 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 ## Revisions
 
 - Switched the AI provider from OpenAI's hosted API to local Ollama `qwen2.5:3b` at the learner's request because OpenAI API credits are unavailable; retained the question JSON contract, grounding prompt, and exact evidence validation.
-- Added the learner-approved upload alternative after the original PRD/spec deferred it. This revision adds only in-memory extraction and leaves the material/question/evaluation pipeline and approved grounding rules intact. The learner explicitly requested implementation without a commit.
+- Added the learner-approved upload alternative after the original PRD/spec deferred it. This revision adds only in-memory extraction and leaves the material/question/evaluation pipeline and approved grounding rules intact. The learner initially requested implementation without a commit; the implementation was later staged, committed, and published to GitHub.

@@ -14,7 +14,7 @@ The student's material is the sole source for both the practice question and the
 A university student preparing for a test or exam who has lecture notes or other course material but struggles to turn it into useful practice questions. Today, they may reread notes or ask a general AI chatbot that can answer from broad knowledge instead of their specific course content.
 
 ## The Core Loop
-The student pastes a short excerpt of course material, chooses a topic, and gets one focused practice question. They answer in their own words, then review feedback explaining what they got right, what they missed, and the evidence in their material. They can continue with another question.
+The student pastes course material or uploads a supported document, chooses a topic, and gets one focused practice question. They answer in their own words, then review feedback explaining what they got right, what they missed, and the evidence in their material. They can continue with another question.
 
 ## Inspiration & Identity
 A focused study partner that makes studying active. It tests understanding rather than acting as a general-purpose chatbot. No specific visual references or aesthetic direction have been chosen.
@@ -26,7 +26,7 @@ The learner wants to make studying more active, help students identify gaps in t
 In a one-minute demo, a student pastes real course material, chooses a topic, receives a relevant question based only on that material, answers it, and sees meaningful feedback with supporting evidence from the same material. Unsupported claims are not presented as evidence. The end-to-end chain should make the app's value clear on screen without requiring an explanation of a complicated technical system.
 
 ## The POC Boundary
-Build the focused study loop: paste course text, choose a topic, generate one question based only on the supplied text, accept a free-form answer, and return a judgment (correct, partially correct, or needs improvement) with an explanation of included and missing points and evidence from the provided text. Do not rely on web searches or unrelated general knowledge to create questions or justify feedback, and do not present unsupported content as evidence. A fully offline system is not required; reliability of the complete end-to-end experience is the priority.
+Build the focused study loop: paste course text or upload a supported .txt, .md, text-based .pdf, or .docx file (maximum 10 MB), choose a topic, generate one question based only on the supplied text, accept a free-form answer, and return a judgment (correct, partially correct, or needs improvement) with an explanation of included and missing points and evidence from the provided text. Uploaded files are extracted in memory into the same editable material field and are not persisted. Pasted text is limited to approximately 5,000 words; uploaded text has no extracted-word-count cap. Scanned PDFs are not OCR'd. Do not rely on web searches or unrelated general knowledge to create questions or justify feedback, and do not present unsupported content as evidence. A fully offline system is not required; reliability of the complete end-to-end experience is the priority.
 
 ## Explicitly Cut
 - User accounts and authentication.
@@ -35,6 +35,11 @@ Build the focused study loop: paste course text, choose a topic, generate one qu
 - Social or community features.
 - Large question banks.
 - Automatic topic detection.
-- File or document uploads; MVP input is pasted text.
+- OCR for scanned PDFs, persistent file storage, file libraries, and upload history.
 - General-purpose chatbot features.
 - Web search and external study resources.
+
+
+## Approved Revision
+
+- Added in-memory uploads for `.txt`, `.md`, text-based `.pdf`, and `.docx` files up to 10 MB. Extracted text enters the same editable material field as pasted text; uploaded files are not saved. The original paste workflow and its approximately 5,000-word limit remain. Uploaded text has no extracted-word-count limit. Scanned PDFs remain unsupported because OCR is out of scope.

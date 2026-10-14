@@ -455,13 +455,131 @@ def _validate_evaluation_result(
     return value
 
 
+def _fallback_evaluation(
+    *, context: SelectedContext, material: str, topic: str, question: str, answer: str
+) -> dict[str, Any]:
+    """Provide transparent, source-only feedback when the local model fails."""
+    import re
+
+    if not context.maps_to(material):
+        raise AnswerEvaluationError("Selected context did not map to original material")
+
+    stop_words = {
+        "a", "an", "and", "are", "as", "at", "be", "been", "being", "by",
+        "can", "could", "did", "do", "does", "for", "from", "had", "has",
+        "have", "how", "i", "in", "into", "is", "it", "its", "may", "might",
+        "of", "on", "or", "our", "should", "that", "the", "their", "them",
+        "there", "these", "this", "those", "to", "was", "we", "were", "what",
+        "when", "where", "which", "who", "why", "will", "with", "would",
+        "you", "your", "about", "explain", "describe", "define", "list",
+        "state", "identify", "typically", "information", "stored",
+    }
+
+    def tokens(text: str) -> set[str]:
+        return {
+            token.casefold()
+            for token in re.findall(r"[^\W_]+", text, flags=re.UNICODE)
+            if len(token) > 1 and token.casefold() not in stop_words
+        }
+
+    topic_tokens = tokens(topic)
+    question_tokens = tokens(question)
+    answer_tokens = tokens(answer)
+    candidates: list[tuple[str, set[str], int]] = []
+
+    # Keep every candidate as an exact slice of one original span. In particular,
+    # don't join wrapped PDF lines and accidentally manufacture a quotation.
+    for start, end in context.source_spans:
+        span = material[start:end]
+        for raw_sentence in re.split(r"(?<=[.!?])\s+", span):
+            sentence = raw_sentence.strip()
+            if not sentence or sentence not in material or sentence not in context.text:
+                continue
+            if sentence.startswith("#") or len(sentence.split()) < 5:
+                continue
+            sentence_tokens = tokens(sentence)
+            relevance = 3 * len(sentence_tokens & topic_tokens) + len(
+                sentence_tokens & question_tokens
+            )
+            if relevance > 0 and all(sentence != item[0] for item in candidates):
+                candidates.append((sentence, sentence_tokens, relevance))
+
+    if not candidates:
+        return {
+            "label": "Needs improvement",
+            "explanation": (
+                "The local model could not complete a detailed evaluation, and the "
+                "selected notes did not yield a safe sentence-level match. Review the "
+                "supporting passage and try again."
+            ),
+            "included_points": [],
+            "missing_or_incorrect_points": [],
+        }
+
+    source_terms = set().union(*(item[1] for item in candidates))
+    coverage = len(answer_tokens & source_terms) / max(1, len(source_terms))
+    if coverage >= 0.35:
+        label = "Correct"
+    elif coverage >= 0.12:
+        label = "Partially correct"
+    else:
+        label = "Needs improvement"
+
+    ranked_matches = sorted(
+        candidates,
+        key=lambda item: (len(item[1] & answer_tokens), item[2]),
+        reverse=True,
+    )
+    included = [
+        {
+            "point": "Your answer shares key terms with this passage.",
+            "evidence_excerpt": sentence,
+        }
+        for sentence, sentence_tokens, _ in ranked_matches
+        if len(sentence_tokens & answer_tokens) >= 2
+    ][:3]
+    missing = [
+        {
+            "point": "Review this related point in your notes; a word-match check did not find it in your answer.",
+            "evidence_excerpt": sentence,
+        }
+        for sentence, sentence_tokens, _ in sorted(
+            candidates,
+            key=lambda item: (len(item[1] & answer_tokens), -item[2]),
+        )
+        if len(sentence_tokens & answer_tokens) < 2
+    ][:3]
+
+    logger.warning(
+        "Evaluation fallback used reason=local_model_unavailable_or_invalid "
+        "coverage=%.3f source_terms=%d answer_terms=%d",
+        coverage,
+        len(source_terms),
+        len(answer_tokens),
+    )
+    return {
+        "label": label,
+        "explanation": (
+            "The local AI model could not complete its detailed evaluation, so this is "
+            "a basic word-match check against your selected notes—not a full semantic "
+            "judgment. Compare the passages below with your answer; synonyms or correct "
+            "paraphrases may not be recognized by this fallback."
+        ),
+        "included_points": included,
+        "missing_or_incorrect_points": missing,
+    }
+
+
 def evaluate_answer(
     *, material: str, topic: str, question: str, answer: str
 ) -> dict[str, Any]:
-    """Evaluate with topic-relevant source passages and validate against full source."""
+    """Evaluate with local Ollama; fall back to transparent source-only feedback."""
     context = select_relevant_context(material, topic)
     if not context.text.strip():
         raise AnswerEvaluationError("No topic-relevant source passages were found")
+    if not context.maps_to(material):
+        raise AnswerEvaluationError("Selected context did not map to original material")
+
     try:
         result = _request_ollama(
             instructions=EVALUATION_INSTRUCTIONS,
@@ -482,7 +600,20 @@ def evaluate_answer(
             topic=topic,
             question=question,
         )
-    except AnswerEvaluationError:
-        raise
-    except OllamaRequestError as exc:
-        raise AnswerEvaluationError("Answer evaluation failed") from exc
+    except (AnswerEvaluationError, OllamaRequestError) as exc:
+        # Keep the quiz usable if the local model times out, returns invalid JSON,
+        # or produces feedback that cannot pass source-evidence validation. Never
+        # silently accept invalid model evidence: switch to an explicit, conservative
+        # word-match fallback whose excerpts are exact source slices.
+        logger.warning(
+            "Detailed evaluation unavailable failure_class=%s failure=%s",
+            type(exc).__name__,
+            str(exc)[:180],
+        )
+        return _fallback_evaluation(
+            context=context,
+            material=material,
+            topic=topic,
+            question=question,
+            answer=answer,
+        )

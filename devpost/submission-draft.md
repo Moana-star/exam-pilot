@@ -58,7 +58,7 @@ Python · Flask · HTML · CSS · JavaScript · Ollama · qwen2.5:3b · pypdf ·
 
 ## Verification note — update before submitting
 
-The GitHub Actions workflow run for commit `0d74cbd` succeeded on Python 3.11 and 3.12, including dependency installation, compilation, and the project's `unittest` suite.
+The GitHub Actions workflow for code/test commit `e039993` succeeded on Python 3.11 and 3.12, including dependency installation, compilation, and the project's `unittest` suite. It also checks that non-matching evaluation evidence is rejected and a recoverable error is returned.
 
 **Before submission, complete a real local browser session with Ollama:** generate a question from supported notes, answer it, inspect the evaluation and exact excerpts, and try Next Question. Specifically investigate the previously reported failure with a roughly 20,067-word operating-systems PDF. Do not describe this live flow as verified until it has been observed working.
 

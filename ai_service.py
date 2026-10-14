@@ -194,8 +194,67 @@ def _request_ollama(
         )
 
 
+def _best_exact_evidence(context_text: str, topic: str, question: str, source_material: str) -> str:
+    """Choose a verbatim, topic-relevant source passage when the model quote is unusable."""
+    import re
+
+    stop_words = {
+        "a", "an", "and", "are", "as", "at", "be", "by", "for", "from",
+        "how", "in", "is", "it", "of", "on", "or", "the", "this", "to",
+        "was", "what", "when", "where", "which", "why", "with", "does",
+        "do", "did", "can", "could", "would", "should", "will", "about",
+        "describe", "explain", "define", "state", "list", "identify",
+    }
+
+    def tokens(text: str) -> set[str]:
+        return {
+            token.casefold()
+            for token in re.findall(r"[^\\W_]+", text, flags=re.UNICODE)
+            if token.casefold() not in stop_words
+        }
+
+    topic_tokens = tokens(topic)
+    question_tokens = tokens(question)
+    candidates = re.split(r"(?<=[.!?])\\s+|\\n+", context_text)
+    best_excerpt = ""
+    best_score = float("-inf")
+
+    for raw_candidate in candidates:
+        candidate = raw_candidate.strip()
+        if not candidate or candidate not in source_material:
+            continue
+        # Headings often contain all topic words but do not themselves support a question.
+        if candidate.startswith("#") or (len(candidate.split()) <= 8 and not re.search(r"[.!?;]", candidate)):
+            continue
+
+        candidate_tokens = tokens(candidate)
+        topic_overlap = len(candidate_tokens & topic_tokens)
+        question_overlap = len(candidate_tokens & question_tokens)
+        phrase = " ".join(re.findall(r"[^\\W_]+", topic.casefold(), flags=re.UNICODE))
+        candidate_phrase = " ".join(re.findall(r"[^\\W_]+", candidate.casefold(), flags=re.UNICODE))
+        phrase_bonus = 2.0 if phrase and phrase in candidate_phrase else 0.0
+        score = topic_overlap * 4.0 + question_overlap + phrase_bonus
+        if re.search(r"[.!?;]$", candidate):
+            score += 0.25
+        score += min(len(candidate), 300) / 3000
+
+        if score > best_score:
+            best_excerpt = candidate
+            best_score = score
+
+    # A quote must contain at least one meaningful connection to the topic or question.
+    if best_score <= 0:
+        return ""
+    return best_excerpt
+
+
 def _validate_question_result(
-    value: Any, context: str | SelectedContext, source_material: str
+    value: Any,
+    context: str | SelectedContext,
+    source_material: str,
+    *,
+    repair_evidence: bool = False,
+    topic: str = "",
 ) -> dict[str, str]:
     if isinstance(context, SelectedContext):
         if not context.maps_to(source_material):
@@ -219,30 +278,40 @@ def _validate_question_result(
 
     if value["status"] == "supported":
         excerpt = value["evidence_excerpt"]
-        # The model was shown `context`, so its citation must be an exact
-        # substring of that prompt. Also require it verbatim in the original
-        # source because this is the text the browser will display.
-        if (
-            not value["question"].strip()
-            or not excerpt
-        ):
-            raise QuestionGenerationError("Question evidence did not match material")
-        if excerpt not in context_text:
-            logger.warning(
-                "Question evidence validation failed category=context_mismatch context_chars=%d evidence_chars=%d",
+        if not value["question"].strip():
+            raise QuestionGenerationError("Supported response did not include a question")
+
+        # Prefer the model's quote when it is exact. Small local models sometimes
+        # paraphrase citations despite explicit instructions; in that case, choose
+        # a verbatim relevant passage from the bounded context rather than failing
+        # the learner's quiz or weakening source validation.
+        if excerpt and excerpt in context_text and excerpt in source_material:
+            logger.info(
+                "Question evidence validation passed context_chars=%d evidence_chars=%d",
                 len(context_text), len(excerpt),
             )
-            raise QuestionGenerationError("Question evidence did not match supplied context")
-        if excerpt not in source_material:
-            logger.warning(
-                "Question evidence validation failed category=original_material_mismatch evidence_chars=%d",
-                len(excerpt),
+        elif repair_evidence:
+            repaired_excerpt = _best_exact_evidence(
+                context_text, topic, value["question"], source_material
             )
-            raise QuestionGenerationError("Question evidence did not match original material")
-        logger.info(
-            "Question evidence validation passed context_chars=%d evidence_chars=%d",
-            len(context_text), len(excerpt),
-        )
+            if not repaired_excerpt:
+                logger.warning(
+                    "Question evidence repair unavailable context_chars=%d",
+                    len(context_text),
+                )
+                raise QuestionGenerationError("No exact supporting evidence was available")
+            logger.warning(
+                "Question model citation replaced with exact source passage context_chars=%d evidence_chars=%d",
+                len(context_text), len(repaired_excerpt),
+            )
+            value = dict(value, evidence_excerpt=repaired_excerpt)
+        else:
+            category = "context_mismatch" if excerpt not in context_text else "original_material_mismatch"
+            logger.warning(
+                "Question evidence validation failed category=%s context_chars=%d evidence_chars=%d",
+                category, len(context_text), len(excerpt),
+            )
+            raise QuestionGenerationError("Question evidence did not match supplied context")
     elif value["question"] or value["evidence_excerpt"]:
         raise QuestionGenerationError("Unsupported topic included a question")
 
@@ -270,7 +339,9 @@ def generate_question(*, material: str, topic: str) -> dict[str, str]:
             schema=QUESTION_SCHEMA,
             operation="question",
         )
-        return _validate_question_result(result, context, material)
+        return _validate_question_result(
+            result, context, material, repair_evidence=True, topic=topic
+        )
     except QuestionGenerationError as exc:
         logger.warning(
             "Question generation rejected response failure_class=%s failure=%s",

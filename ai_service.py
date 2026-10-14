@@ -576,15 +576,42 @@ def _fallback_evaluation(
     }
 
 
+def _evaluation_unavailable(message: str) -> dict[str, Any]:
+    """Return a recoverable, evidence-free response when safe grading is impossible."""
+    return {
+        "label": "Needs improvement",
+        "explanation": message,
+        "included_points": [],
+        "missing_or_incorrect_points": [],
+    }
+
+
 def evaluate_answer(
     *, material: str, topic: str, question: str, answer: str
 ) -> dict[str, Any]:
-    """Evaluate with local Ollama; fall back to transparent source-only feedback."""
-    context = select_relevant_context(material, topic)
+    """Evaluate with local Ollama; never turn a grading failure into an API outage."""
+    try:
+        context = select_relevant_context(material, topic)
+    except Exception as exc:
+        # The request has already passed API input validation. Keep an unexpected
+        # context-selection failure recoverable for the learner, but log its class.
+        logger.exception("Evaluation context selection failed failure_class=%s", type(exc).__name__)
+        return _evaluation_unavailable(
+            "We couldn’t safely select matching passages from your notes, so no grade was assigned. "
+            "Your answer is saved; try generating the question again."
+        )
+
     if not context.text.strip():
-        raise AnswerEvaluationError("No topic-relevant source passages were found")
+        return _evaluation_unavailable(
+            "The selected notes did not contain enough text for a safe evaluation. "
+            "No grade was assigned. Choose a topic clearly covered by your material."
+        )
     if not context.maps_to(material):
-        raise AnswerEvaluationError("Selected context did not map to original material")
+        logger.error("Evaluation context failed original-source mapping")
+        return _evaluation_unavailable(
+            "The selected passage could not be verified against the original notes, so no grade was assigned. "
+            "Please generate the question again."
+        )
 
     try:
         result = _request_ollama(
@@ -607,19 +634,26 @@ def evaluate_answer(
             question=question,
         )
     except (AnswerEvaluationError, OllamaRequestError) as exc:
-        # Keep the quiz usable if the local model times out, returns invalid JSON,
-        # or produces feedback that cannot pass source-evidence validation. Never
-        # silently accept invalid model evidence: switch to an explicit, conservative
-        # word-match fallback whose excerpts are exact source slices.
         logger.warning(
             "Detailed evaluation unavailable failure_class=%s failure=%s",
             type(exc).__name__,
             str(exc)[:180],
         )
-        return _fallback_evaluation(
-            context=context,
-            material=material,
-            topic=topic,
-            question=question,
-            answer=answer,
-        )
+        try:
+            return _fallback_evaluation(
+                context=context,
+                material=material,
+                topic=topic,
+                question=question,
+                answer=answer,
+            )
+        except AnswerEvaluationError as fallback_exc:
+            logger.error(
+                "Evaluation fallback unavailable failure_class=%s failure=%s",
+                type(fallback_exc).__name__,
+                str(fallback_exc)[:180],
+            )
+            return _evaluation_unavailable(
+                "The local model could not complete the evaluation and the notes could not be safely verified. "
+                "No grade was assigned. Your answer is still here; try generating the question again."
+            )

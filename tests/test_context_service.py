@@ -347,6 +347,23 @@ class ContextSelectionTests(unittest.TestCase):
         self.assertNotEqual(repaired, "A PCB stores all information about CPU scheduling.")
 
 
+    def test_evaluation_returns_recoverable_feedback_when_topic_is_not_in_material(self):
+        material = "# File Systems\nFiles organize data on storage devices."
+
+        with patch.object(ai_service, "_request_ollama") as request:
+            result = ai_service.evaluate_answer(
+                material=material,
+                topic="Process Control Block",
+                question="What does a PCB store?",
+                answer="It stores process information.",
+            )
+
+        self.assertEqual(result["label"], "Needs improvement")
+        self.assertIn("No grade was assigned", result["explanation"])
+        self.assertEqual(result["included_points"], [])
+        self.assertEqual(result["missing_or_incorrect_points"], [])
+        request.assert_not_called()
+
     def test_evaluation_falls_back_to_exact_source_feedback_when_ollama_fails(self):
         material = (
             "# Process Control Block\n"

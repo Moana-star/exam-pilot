@@ -39,6 +39,14 @@ Build mode: fast
   Learner check: Upload one of your course files, review the extracted text, then complete the usual question and answer flow.
   Commit: Included in commit `91d6b08` (`Improve source-grounded study question generation`), subsequently published to the public `main` branch. Automated and hands-on verification still need to be completed.
 
+## Automated verification
+
+- [x] GitHub Actions workflow is present at `.github/workflows/tests.yml` and uses the standard-library `unittest` runner on Python 3.11 and 3.12.
+- [x] Verified CI run for source commit `0d74cbd`: dependency installation, Python compilation, and unit tests passed on both matrix versions. Run: [38551028778](https://github.com/Moana-star/exam-pilot/actions/runs/38551028778).
+- [x] Public repository contains no tracked `.env`, PDF, DOC/DOCX, or learner-profile file in the inspected tree. Keep checking staged file lists before future commits.
+- [x] Correct local test command documented: `python -m unittest discover -s tests -v`. The attempted `python -m pytest -q` returned `No module named pytest`; this project does not declare pytest and its tests use Python's built-in `unittest`, so installing pytest is not required to run the supported suite.
+- [ ] Local end-to-end browser + Ollama run still required; CI does not exercise a live Ollama model or the user's installed browser.
+
 ## Hands-on Checkpoints
 
 - [ ] Early usable behavior explored — after slice 1, review whether question generation and unsupported-topic recovery feel aligned with the approved PRD.
@@ -50,15 +58,15 @@ Build mode: fast
 
 ## Code Tour and App Map
 
-- [ ] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
-- [ ] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
-- [ ] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
+- [x] Learning activity complete — a reference-only code tour and a focused large-note debugging practice are documented in [`devpost/app-map.html`](app-map.html). This does not replace live app testing.
+- [x] Optional edit and transfer reflection addressed — transfer prompts are included in the app map; no personal reflection was recorded.
+- [x] `devpost/app-map.html` generated from the current source tree, reviewed for route/file links, and linked from the README. It includes the project-grounded debugging practice.
 
-Activity and evidence: [what actually happened; real document/test/code references; unfinished work if interrupted]
-Route and stops: [actual paths and symbols; guided stops completed, or reference-only route]
-Edit outcome: [tried/kept/reverted/declined/not applicable; verification if changed]
-Reflection: [offered/answered/declined/already covered — personal answer belongs only in the ignored profile]
-Activity mode: [live app and editor, explicit static fallback, focused alternative, prior practice, or recap]
+Activity and evidence: Source files reviewed: `app.py`, `ai_service.py`, `context_service.py`, `material_service.py`, `static/app.js`, `templates/index.html`, `tests/`, and `.github/workflows/tests.yml`. CI evidence: run [38551028778](https://github.com/Moana-star/exam-pilot/actions/runs/38551028778) passed for source commit `0d74cbd` on Python 3.11 and 3.12. Outstanding: reproduce and resolve the reported question-generation failure with the learner's approximately 20,067-word operating-systems PDF, then complete a full live question → answer → evaluation → next-question session.
+Route and stops: Material input and upload → `POST /api/material` / `material_service.extract_material()` → `POST /api/question` / `ai_service.generate_question()` → `context_service.select_relevant_context()` → local Ollama request and exact-evidence validation → `POST /api/evaluate` / `ai_service.evaluate_answer()` → feedback and next question in `static/app.js`.
+Edit outcome: Documentation only in this finalization pass; no application source code was changed. The map, demo guide, and submission draft were added. The live large-PDF failure is not marked fixed because it has not been reproduced in a live local runtime here.
+Reflection: Transfer prompts included in `app-map.html`; no personal profile content collected or published.
+Activity mode: Reference-only source tour and focused debugging alternative; a live local app/model session remains required.
 
 ## Revisions
 

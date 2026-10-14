@@ -89,8 +89,10 @@ class ContextSelectionTests(unittest.TestCase):
         self.assertNotIn(material, request.call_args.kwargs["data"]["course_material"])
         invalid = dict(response, evidence_excerpt="invented evidence")
         with patch.object(ai_service, "_request_ollama", return_value=invalid):
-            with self.assertRaises(ai_service.QuestionGenerationError):
-                ai_service.generate_question(material=material, topic="mitosis")
+            repaired = ai_service.generate_question(material=material, topic="mitosis")
+        self.assertEqual(repaired["question"], response["question"])
+        self.assertIn(repaired["evidence_excerpt"], material)
+        self.assertIn(repaired["evidence_excerpt"], request.call_args.kwargs["data"]["course_material"])
 
     def test_large_relevant_section_is_bounded_but_evidence_uses_full_source(self):
         evidence = "During a context switch, the operating system saves the process state in its PCB."

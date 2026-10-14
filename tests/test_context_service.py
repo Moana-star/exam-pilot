@@ -244,5 +244,75 @@ class ContextSelectionTests(unittest.TestCase):
         request.assert_not_called()
 
 
+    def test_evaluation_evidence_must_match_context_and_original_source(self):
+        evidence = "A PCB stores the process state and current program counter."
+        material = (
+            "# Process Control Block\n"
+            + evidence
+            + "\n\n# File Systems\nFiles organize data on storage devices."
+        )
+        context = select_relevant_context(material, "Process Control Block")
+        valid = {
+            "label": "Partially correct",
+            "explanation": "The answer identifies one supported point but misses another.",
+            "included_points": [
+                {"point": "Identifies stored process state.", "evidence_excerpt": evidence}
+            ],
+            "missing_or_incorrect_points": [
+                {"point": "Could mention the program counter.", "evidence_excerpt": ""}
+            ],
+        }
+
+        self.assertIs(
+            ai_service._validate_evaluation_result(valid, context, material), valid
+        )
+
+        for invalid_excerpt in (
+            "A PCB keeps process state and its program counter.",
+            "Files organize data on storage devices.",
+        ):
+            with self.subTest(evidence=invalid_excerpt):
+                invalid = {
+                    **valid,
+                    "included_points": [
+                        {"point": "Identifies stored process state.", "evidence_excerpt": invalid_excerpt}
+                    ],
+                }
+                with self.assertRaises(ai_service.AnswerEvaluationError):
+                    ai_service._validate_evaluation_result(invalid, context, material)
+
+    def test_evaluation_api_rejects_nonmatching_evidence_and_returns_recoverable_error(self):
+        material = (
+            "# Process Control Block\n"
+            "A PCB stores process state and the current program counter."
+        )
+        invalid_result = {
+            "label": "Correct",
+            "explanation": "The answer matches the topic.",
+            "included_points": [
+                {
+                    "point": "The answer identifies the PCB contents.",
+                    "evidence_excerpt": "A PCB stores all information about CPU scheduling.",
+                }
+            ],
+            "missing_or_incorrect_points": [],
+        }
+
+        with patch.object(ai_service, "_request_ollama", return_value=invalid_result):
+            response = exam_app.app.test_client().post(
+                "/api/evaluate",
+                json={
+                    "material": material,
+                    "topic": "Process Control Block",
+                    "question": "What does a PCB store?",
+                    "answer": "It stores process state.",
+                },
+            )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("try again", response.get_json()["error"].lower())
+        self.assertNotIn("all information about CPU scheduling", response.get_data(as_text=True))
+
+
 if __name__ == "__main__":
     unittest.main()

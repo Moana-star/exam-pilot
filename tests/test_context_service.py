@@ -347,5 +347,35 @@ class ContextSelectionTests(unittest.TestCase):
         self.assertNotEqual(repaired, "A PCB stores all information about CPU scheduling.")
 
 
+    def test_evaluation_falls_back_to_exact_source_feedback_when_ollama_fails(self):
+        material = (
+            "# Process Control Block\n"
+            "The process state records whether a process is ready or running. "
+            "The program counter stores the address of the next instruction. "
+            "CPU registers preserve values needed when execution resumes. "
+            "Memory management information describes memory allocated to the process."
+        )
+        with patch.object(
+            ai_service,
+            "_request_ollama",
+            side_effect=ai_service.OllamaRequestError("local model unavailable"),
+        ):
+            result = ai_service.evaluate_answer(
+                material=material,
+                topic="Process Control Block",
+                question="What information is stored in a PCB?",
+                answer="The PCB stores the process state, program counter, CPU registers, and memory management information.",
+            )
+
+        self.assertIn(result["label"], {"Correct", "Partially correct", "Needs improvement"})
+        self.assertIn("word-match check", result["explanation"])
+        self.assertIsInstance(result["included_points"], list)
+        self.assertIsInstance(result["missing_or_incorrect_points"], list)
+        for point in result["included_points"] + result["missing_or_incorrect_points"]:
+            excerpt = point["evidence_excerpt"]
+            self.assertTrue(excerpt)
+            self.assertIn(excerpt, material)
+
+
 if __name__ == "__main__":
     unittest.main()

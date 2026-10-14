@@ -524,9 +524,9 @@ def _fallback_evaluation(
 
     source_terms = set().union(*(item[1] for item in candidates))
     coverage = len(answer_tokens & source_terms) / max(1, len(source_terms))
-    if coverage >= 0.35:
-        label = "Correct"
-    elif coverage >= 0.12:
+    # A lexical fallback cannot reliably establish semantic correctness, so it
+    # deliberately never awards "Correct" without the model's full evaluation.
+    if coverage >= 0.12:
         label = "Partially correct"
     else:
         label = "Needs improvement"

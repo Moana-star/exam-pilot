@@ -194,8 +194,10 @@ def _request_ollama(
         )
 
 
-def _best_exact_evidence(context_text: str, topic: str, question: str, source_material: str) -> str:
-    """Choose a verbatim, topic-relevant source passage when the model quote is unusable."""
+def _best_exact_evidence(
+    context: str | SelectedContext, topic: str, question: str, source_material: str
+) -> str:
+    """Choose an exact, topic-relevant passage from the selected original source spans."""
     import re
 
     stop_words = {
@@ -213,25 +215,45 @@ def _best_exact_evidence(context_text: str, topic: str, question: str, source_ma
             if token.casefold() not in stop_words
         }
 
+    if isinstance(context, SelectedContext):
+        context_text = context.text
+        # Split each original source span independently so PDF line wraps remain
+        # intact and synthetic separators never become part of an evidence quote.
+        raw_spans = [source_material[start:end] for start, end in context.source_spans]
+    else:
+        context_text = context
+        raw_spans = [context_text]
+
     topic_tokens = tokens(topic)
     question_tokens = tokens(question)
-    candidates = re.split(r"(?<=[.!?])\s+|\n{2,}", context_text)
+    candidates: list[str] = []
+    for raw_span in raw_spans:
+        # Split only at sentence-ending punctuation. Newlines inside a PDF sentence
+        # remain in the candidate, preserving an exact slice of the extracted source.
+        for raw_candidate in re.split(r"(?<=[.!?])\s+", raw_span):
+            candidate = raw_candidate.strip()
+            if candidate and candidate not in candidates:
+                candidates.append(candidate)
+
     best_excerpt = ""
     best_score = float("-inf")
+    phrase = " ".join(re.findall(r"[^\W_]+", topic.casefold(), flags=re.UNICODE))
 
-    for raw_candidate in candidates:
-        candidate = raw_candidate.strip()
-        if not candidate or candidate not in source_material:
+    for candidate in candidates:
+        if candidate not in source_material or candidate not in context_text:
             continue
-        # Headings often contain all topic words but do not themselves support a question.
-        if candidate.startswith("#") or (len(candidate.split()) <= 8 and not re.search(r"[.!?;]", candidate)):
+        # Headings alone are not evidence for a quiz question.
+        if candidate.startswith("#") or (
+            len(candidate.split()) <= 8 and not re.search(r"[.!?;]", candidate)
+        ):
             continue
 
         candidate_tokens = tokens(candidate)
         topic_overlap = len(candidate_tokens & topic_tokens)
         question_overlap = len(candidate_tokens & question_tokens)
-        phrase = " ".join(re.findall(r"[^\W_]+", topic.casefold(), flags=re.UNICODE))
-        candidate_phrase = " ".join(re.findall(r"[^\W_]+", candidate.casefold(), flags=re.UNICODE))
+        candidate_phrase = " ".join(
+            re.findall(r"[^\W_]+", candidate.casefold(), flags=re.UNICODE)
+        )
         phrase_bonus = 2.0 if phrase and phrase in candidate_phrase else 0.0
         score = topic_overlap * 4.0 + question_overlap + phrase_bonus
         if re.search(r"[.!?;]$", candidate):
@@ -242,11 +264,10 @@ def _best_exact_evidence(context_text: str, topic: str, question: str, source_ma
             best_excerpt = candidate
             best_score = score
 
-    # A quote must contain at least one meaningful connection to the topic or question.
+    # Do not repair with an unrelated passage if the source has no lexical connection.
     if best_score <= 0:
         return ""
     return best_excerpt
-
 
 def _validate_question_result(
     value: Any,
@@ -292,7 +313,7 @@ def _validate_question_result(
             )
         elif repair_evidence:
             repaired_excerpt = _best_exact_evidence(
-                context_text, topic, value["question"], source_material
+                context, topic, value["question"], source_material
             )
             if not repaired_excerpt:
                 logger.warning(

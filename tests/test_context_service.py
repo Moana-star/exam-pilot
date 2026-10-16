@@ -36,6 +36,8 @@ class ContextSelectionTests(unittest.TestCase):
         self.assertEqual(payload["format"], ai_service.QUESTION_SCHEMA)
         self.assertFalse(payload["stream"])
         self.assertEqual(payload["options"]["temperature"], 0)
+        self.assertEqual(payload["options"]["num_predict"], 256)
+        self.assertEqual(urlopen.call_args.kwargs["timeout"], 45)
         prompt_data = json.loads(payload["prompt"])
         self.assertEqual(prompt_data["course_material"], context)
         self.assertIn("Return exactly one JSON object", payload["system"])
@@ -346,6 +348,29 @@ class ContextSelectionTests(unittest.TestCase):
         self.assertIn(repaired, material)
         self.assertNotEqual(repaired, "A PCB stores all information about CPU scheduling.")
 
+
+    def test_evaluation_api_returns_recoverable_response_if_service_raises(self):
+        with patch.object(
+            exam_app,
+            "evaluate_answer",
+            side_effect=ai_service.AnswerEvaluationError("unsafe evaluation"),
+        ):
+            response = exam_app.app.test_client().post(
+                "/api/evaluate",
+                json={
+                    "material": "# PCB\\nThe PCB stores process state.",
+                    "topic": "PCB",
+                    "question": "What does a PCB store?",
+                    "answer": "It stores process state.",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200, response.get_data(as_text=True))
+        result = response.get_json()
+        self.assertEqual(result["label"], "Needs improvement")
+        self.assertIn("No grade was assigned", result["explanation"])
+        self.assertEqual(result["included_points"], [])
+        self.assertEqual(result["missing_or_incorrect_points"], [])
 
     def test_evaluation_returns_recoverable_feedback_when_topic_is_not_in_material(self):
         material = "# File Systems\nFiles organize data on storage devices."

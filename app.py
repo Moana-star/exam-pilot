@@ -9,6 +9,7 @@ from ai_service import (
     AnswerEvaluationError,
     QuestionGenerationError,
     evaluate_answer,
+    fallback_evaluate_answer,
     generate_question,
 )
 from material_service import MaterialExtractionError, extract_material
@@ -116,29 +117,25 @@ def evaluation():
             answer=answer,
         )
     except AnswerEvaluationError as error:
-        # Defensive route-level recovery for stale local files or an unexpected
-        # evaluation failure. Never turn grading trouble into an API outage.
-        logger.exception("Evaluation returned an unsafe result: %s", type(error).__name__)
-        result = {
-            "label": "Needs improvement",
-            "explanation": (
-                "A detailed evaluation could not be completed safely. No grade was assigned. "
-                "Your answer is still here; check that your topic is covered by the notes and try again."
-            ),
-            "included_points": [],
-            "missing_or_incorrect_points": [],
-        }
+        # A service-level failure should not skip the independent source-only
+        # fallback. It may still provide useful feedback without the local model.
+        logger.exception("Detailed evaluation failed: %s", type(error).__name__)
+        result = fallback_evaluate_answer(
+            material=material,
+            topic=topic,
+            question=question_text,
+            answer=answer,
+        )
     except Exception as error:
+        # Keep the API recoverable and make one bounded attempt at source-only
+        # feedback rather than returning an empty evaluation immediately.
         logger.exception("Unexpected evaluation failure: %s", type(error).__name__)
-        result = {
-            "label": "Needs improvement",
-            "explanation": (
-                "An unexpected problem prevented safe evaluation. No grade was assigned. "
-                "Your answer is still here; you can continue studying or try again."
-            ),
-            "included_points": [],
-            "missing_or_incorrect_points": [],
-        }
+        result = fallback_evaluate_answer(
+            material=material,
+            topic=topic,
+            question=question_text,
+            answer=answer,
+        )
 
     return jsonify(result)
 

@@ -424,12 +424,17 @@ class ContextSelectionTests(unittest.TestCase):
             "A Process Control Block is a data structure maintained by the Operating System for every process. "
             "Process Control Blocks store vital information related to processes."
         )
-        result = ai_service.evaluate_answer(
-            material=material,
-            topic="Process Control Block",
-            question="What is a PCB?",
-            answer="A PCB is a data structure for each process that stores important information.",
-        )
+        with patch.object(
+            ai_service,
+            "_request_ollama",
+            side_effect=ai_service.OllamaRequestError("local model unavailable"),
+        ):
+            result = ai_service.evaluate_answer(
+                material=material,
+                topic="Process Control Block",
+                question="What is a PCB?",
+                answer="A PCB is a data structure for each process that stores important information.",
+            )
         self.assertIn("does not mean your answer is complete", result["explanation"])
         self.assertTrue(result["included_points"])
         self.assertEqual(result["missing_or_incorrect_points"], [])

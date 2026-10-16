@@ -27,6 +27,7 @@ const session = {
   topic: "",
   question: "",
   questionEvidence: "",
+  questionHistory: [],
   answer: "",
   step: "start",
   pending: false,
@@ -112,7 +113,11 @@ async function requestQuestion(button = generateButton, fromFeedback = false) {
     const response = await fetch("/api/question", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ material: session.material, topic: session.topic }),
+      body: JSON.stringify({
+        material: session.material,
+        topic: session.topic,
+        previous_questions: session.questionHistory,
+      }),
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Question request failed.");
@@ -120,6 +125,14 @@ async function requestQuestion(button = generateButton, fromFeedback = false) {
     if (result.status === "supported") {
       session.question = result.question;
       session.questionEvidence = result.evidence_excerpt;
+      if (
+        !session.questionHistory.some(
+          (previous) => previous.trim().toLocaleLowerCase() === result.question.trim().toLocaleLowerCase(),
+        )
+      ) {
+        session.questionHistory.push(result.question);
+        session.questionHistory = session.questionHistory.slice(-20);
+      }
       session.answer = "";
       answerInput.value = "";
       session.step = "question";

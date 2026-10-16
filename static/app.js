@@ -103,8 +103,13 @@ async function requestQuestion(button = generateButton, fromFeedback = false) {
     nextQuestionError.hidden = true;
     retryNextQuestionButton.hidden = true;
   } else {
-    session.material = materialInput.value;
-    session.topic = topicInput.value;
+    const nextMaterial = materialInput.value;
+    const nextTopic = topicInput.value;
+    if (nextMaterial !== session.material || nextTopic !== session.topic) {
+      session.questionHistory = [];
+    }
+    session.material = nextMaterial;
+    session.topic = nextTopic;
     if (!validateForm()) return;
   }
 

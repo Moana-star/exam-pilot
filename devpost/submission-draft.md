@@ -58,7 +58,7 @@ Python · Flask · HTML · CSS · JavaScript · Ollama · qwen2.5:3b · pypdf ·
 
 ## Verification note — update before submitting
 
-The GitHub Actions workflow for code/test commit `e039993` succeeded on Python 3.11 and 3.12, including dependency installation, compilation, and the project's `unittest` suite. It also checks that non-matching evaluation evidence is rejected and a recoverable error is returned.
+The current `main` commit `d8b5de2` passed [GitHub Actions run 38905593467](https://github.com/Moana-star/exam-pilot/actions/runs/38905593467), which runs compilation and the unit-test suite on Python 3.11 and 3.12. I also cloned the public `main` branch into a clean test environment, installed the pinned dependencies, and ran the full suite: **30 tests passed**. A route smoke check returned HTTP 200 for the study page and recoverable HTTP 400 responses for empty API requests. These checks verify the automated baseline; they do not replace a real Ollama-backed browser rehearsal.
 
 **Before submission, complete a real local browser session with Ollama:** generate a question from supported notes, answer it, inspect the evaluation and exact excerpts, and try Next Question. Specifically investigate the previously reported failure with a roughly 20,067-word operating-systems PDF. Do not describe this live flow as verified until it has been observed working.
 

@@ -356,6 +356,75 @@ def _validate_question_result(
     return value
 
 
+def _fallback_question_from_source(
+    context: SelectedContext,
+    source_material: str,
+    history: list[str],
+    is_repeat: Any,
+) -> dict[str, str] | None:
+    """Build a simple question from a different exact source sentence if Ollama repeats."""
+    import re
+
+    spans = [source_material[start:end] for start, end in context.source_spans]
+    candidates: list[str] = []
+    for span in spans:
+        for raw_sentence in re.split(r"(?<=[.!?])\s+", span):
+            sentence = raw_sentence.strip()
+            if (
+                sentence
+                and sentence in source_material
+                and sentence in context.text
+                and sentence not in candidates
+                and len(sentence.split()) >= 7
+            ):
+                candidates.append(sentence)
+
+    def clean_subject(value: str) -> str:
+        value = re.sub(r"^(?:the|a|an)\s+", "", value.strip(), flags=re.IGNORECASE)
+        return value.rstrip(" ,;:")
+
+    for sentence in candidates:
+        patterns = [
+            (
+                r"(?P<subject>[^,;.!?]{2,90}?)\s+stores?\s+(?P<object>[^.!?]+)",
+                lambda m: f"What does {clean_subject(m.group('subject'))} store?",
+            ),
+            (
+                r"(?P<subject>[^,;.!?]{2,90}?)\s+records?\s+(?P<object>[^.!?]+)",
+                lambda m: f"What does {clean_subject(m.group('subject'))} record?",
+            ),
+            (
+                r"(?P<subject>[^,;.!?]{2,90}?)\s+contains?\s+(?P<object>[^.!?]+)",
+                lambda m: f"What does {clean_subject(m.group('subject'))} contain?",
+            ),
+            (
+                r"(?P<subject>[^,;.!?]{2,90}?)\s+is\s+(?:a|an)\s+",
+                lambda m: f"What is {clean_subject(m.group('subject'))}?",
+            ),
+            (
+                r"(?P<subject>[^,;.!?]{2,90}?)\s+acts as\s+(?P<object>[^.!?]+)",
+                lambda m: f"What role does {clean_subject(m.group('subject'))} serve?",
+            ),
+        ]
+        for pattern, make_question in patterns:
+            match = re.search(pattern, sentence, flags=re.IGNORECASE)
+            if not match:
+                continue
+            question = make_question(match)
+            if question and not any(is_repeat(question, previous) for previous in history):
+                return {
+                    "status": "supported",
+                    "question": question,
+                    "explanation": (
+                        "This question was built from a different sentence in your supplied "
+                        "notes because the local model repeated a recent question."
+                    ),
+                    "evidence_excerpt": sentence,
+                }
+
+    return None
+
+
 def generate_question(
     *, material: str, topic: str, previous_questions: list[str] | None = None
 ) -> dict[str, str]:
@@ -433,9 +502,13 @@ def generate_question(
             )
             history.append(validated["question"])
         logger.warning(
-            "Question generation stopped because no distinct question was produced history_count=%d",
+            "Question generation stopped because no distinct model question was produced history_count=%d",
             len(history),
         )
+        fallback = _fallback_question_from_source(context, material, history, is_repeat)
+        if fallback is not None:
+            logger.info("Question generation used deterministic source-grounded fallback")
+            return fallback
         return {
             "status": "unsupported",
             "question": "",

@@ -40,6 +40,12 @@ If it does, return status supported, one focused question about the topic, a
 brief explanation, and an evidence_excerpt copied exactly from the material that
 supports the question. Never invent or paraphrase the excerpt.
 
+The input may include previous_questions from this same practice session. Do not
+repeat any of them or ask the same question with only minor wording changes.
+Choose a different fact, relationship, or detail supported by the supplied
+material. If the material supports only one distinct question, do not pretend a
+repeat is new.
+
 If it does not, return status unsupported, an empty question, an explanation that
 the topic is not sufficiently covered, and an empty evidence_excerpt. Do not
 make a question from outside knowledge.
@@ -138,7 +144,9 @@ def _request_ollama(
         "stream": False,
         "keep_alive": "5m",
         "options": {
-            "temperature": 0,
+            # A little variation helps produce distinct questions while the
+            # source and evidence validation keep the quiz grounded.
+            "temperature": 0.25 if operation == "question" else 0,
             # Bound response generation so a slow local model cannot leave the
             # learner waiting indefinitely for a small JSON object.
             "num_predict": 384 if operation == "evaluation" else 256,
@@ -348,8 +356,10 @@ def _validate_question_result(
     return value
 
 
-def generate_question(*, material: str, topic: str) -> dict[str, str]:
-    """Ask Ollama using topic-relevant source passages and validate to full source."""
+def generate_question(
+    *, material: str, topic: str, previous_questions: list[str] | None = None
+) -> dict[str, str]:
+    """Generate a source-grounded question that differs from this session's history."""
     context = select_relevant_context(material, topic)
     logger.info("Ollama operation=question selected_context_chars=%d", len(context.text))
     if not context.text.strip():
@@ -362,15 +372,43 @@ def generate_question(*, material: str, topic: str) -> dict[str, str]:
             ),
             "evidence_excerpt": "",
         }
+
+    def normalize(value: str) -> str:
+        import re
+        return " ".join(re.findall(r"[a-z0-9]+", value.casefold()))
+
+    history = [
+        item.strip() for item in (previous_questions or [])
+        if isinstance(item, str) and item.strip()
+    ][-20:]
     try:
-        result = _request_ollama(
-            instructions=QUESTION_INSTRUCTIONS,
-            data={"topic": topic, "course_material": context.text},
-            schema=QUESTION_SCHEMA,
-            operation="question",
-        )
-        return _validate_question_result(
-            result, context, material, repair_evidence=True, topic=topic
+        # If the model repeats itself, give it one bounded retry with the repeated
+        # question added to the exclusion list. Never silently label a repeat as new.
+        for attempt in range(2):
+            result = _request_ollama(
+                instructions=QUESTION_INSTRUCTIONS,
+                data={
+                    "topic": topic,
+                    "course_material": context.text,
+                    "previous_questions": history,
+                },
+                schema=QUESTION_SCHEMA,
+                operation="question",
+            )
+            validated = _validate_question_result(
+                result, context, material, repair_evidence=True, topic=topic
+            )
+            normalized_question = normalize(validated["question"])
+            if not any(normalized_question == normalize(item) for item in history):
+                return validated
+            logger.warning(
+                "Question generation rejected repeated question attempt=%d history_count=%d",
+                attempt + 1,
+                len(history),
+            )
+            history.append(validated["question"])
+        raise QuestionGenerationError(
+            "The model repeated a recent question after retrying"
         )
     except QuestionGenerationError as exc:
         logger.warning(

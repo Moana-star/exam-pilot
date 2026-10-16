@@ -377,6 +377,31 @@ def generate_question(
         import re
         return " ".join(re.findall(r"[a-z0-9]+", value.casefold()))
 
+    def is_repeat(candidate: str, previous: str) -> bool:
+        """Reject exact repeats and near-identical rewordings of recent questions."""
+        from difflib import SequenceMatcher
+
+        candidate_normalized = normalize(candidate)
+        previous_normalized = normalize(previous)
+        if not candidate_normalized or not previous_normalized:
+            return False
+        if candidate_normalized == previous_normalized:
+            return True
+
+        candidate_tokens = set(candidate_normalized.split())
+        previous_tokens = set(previous_normalized.split())
+        # Very short questions are too ambiguous for fuzzy matching; exact matching
+        # above is still applied to them.
+        if min(len(candidate_tokens), len(previous_tokens)) < 5:
+            return False
+        overlap = (
+            2 * len(candidate_tokens & previous_tokens)
+            / (len(candidate_tokens) + len(previous_tokens))
+        )
+        return overlap >= 0.82 or SequenceMatcher(
+            None, candidate_normalized, previous_normalized
+        ).ratio() >= 0.88
+
     history = [
         item.strip() for item in (previous_questions or [])
         if isinstance(item, str) and item.strip()
@@ -399,7 +424,7 @@ def generate_question(
                 result, context, material, repair_evidence=True, topic=topic
             )
             normalized_question = normalize(validated["question"])
-            if not any(normalized_question == normalize(item) for item in history):
+            if not any(is_repeat(validated["question"], item) for item in history):
                 return validated
             logger.warning(
                 "Question generation rejected repeated question attempt=%d history_count=%d",
@@ -407,9 +432,20 @@ def generate_question(
                 len(history),
             )
             history.append(validated["question"])
-        raise QuestionGenerationError(
-            "The model repeated a recent question after retrying"
+        logger.warning(
+            "Question generation stopped because no distinct question was produced history_count=%d",
+            len(history),
         )
+        return {
+            "status": "unsupported",
+            "question": "",
+            "explanation": (
+                "Your material covers this topic, but it did not yield a sufficiently "
+                "different question after retrying. Try a narrower subtopic or add "
+                "more notes so the next question can test a different detail."
+            ),
+            "evidence_excerpt": "",
+        }
     except QuestionGenerationError as exc:
         logger.warning(
             "Question generation rejected response failure_class=%s failure=%s",

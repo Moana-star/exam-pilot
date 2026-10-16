@@ -136,7 +136,13 @@ def _request_ollama(
         "prompt": json.dumps(data, ensure_ascii=False),
         "format": schema,
         "stream": False,
-        "options": {"temperature": 0},
+        "keep_alive": "5m",
+        "options": {
+            "temperature": 0,
+            # Bound response generation so a slow local model cannot leave the
+            # learner waiting indefinitely for a small JSON object.
+            "num_predict": 384 if operation == "evaluation" else 256,
+        },
     }
     request = Request(
         OLLAMA_URL,
@@ -146,7 +152,10 @@ def _request_ollama(
     )
     started_at = time.monotonic()
     try:
-        with urlopen(request, timeout=300) as response:
+        # The app must remain responsive on student laptops. A slow local model
+        # is better handled by the source-grounded fallback than a multi-minute wait.
+        timeout_seconds = 20 if operation == "evaluation" else 45
+        with urlopen(request, timeout=timeout_seconds) as response:
             response_data = json.loads(response.read().decode("utf-8"))
         if not isinstance(response_data, dict):
             logger.warning("Ollama operation=%s response_type=%s", operation, type(response_data).__name__)
@@ -647,13 +656,14 @@ def evaluate_answer(
                 question=question,
                 answer=answer,
             )
-        except AnswerEvaluationError as fallback_exc:
-            logger.error(
-                "Evaluation fallback unavailable failure_class=%s failure=%s",
+        except Exception as fallback_exc:
+            # Any fallback failure must be recoverable; never leak an exception to
+            # Flask and turn a student's evaluation into an HTTP 503/500.
+            logger.exception(
+                "Evaluation fallback failed failure_class=%s",
                 type(fallback_exc).__name__,
-                str(fallback_exc)[:180],
             )
             return _evaluation_unavailable(
-                "The local model could not complete the evaluation and the notes could not be safely verified. "
-                "No grade was assigned. Your answer is still here; try generating the question again."
+                "A detailed evaluation could not be completed safely. No grade was assigned. "
+                "Your answer is still here; check that your topic is covered by the notes and try again."
             )

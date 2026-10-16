@@ -540,6 +540,41 @@ class ContextSelectionTests(unittest.TestCase):
         )
 
 
+    def test_question_generation_fallback_uses_unseen_includes_fact_after_repeated_pcb_question(self):
+        material = (
+            "# Process Control Block\n"
+            "A PCB stores process state and scheduling information. "
+            "CPU scheduling information includes process priority, pointers to scheduling queues, and other scheduling parameters. "
+            "The program counter stores the address of the next instruction."
+        )
+        repeated = {
+            "status": "supported",
+            "question": "What scheduling information does a PCB store?",
+            "explanation": "The notes describe scheduling information stored in a PCB.",
+            "evidence_excerpt": "A PCB stores process state and scheduling information.",
+        }
+
+        with patch.object(
+            ai_service, "_request_ollama", side_effect=[repeated, repeated, repeated, repeated]
+        ) as request:
+            result = ai_service.generate_question(
+                material=material,
+                topic="Process Control Block",
+                previous_questions=["What scheduling information does a PCB store?"],
+            )
+
+        self.assertEqual(result["status"], "supported")
+        self.assertEqual(
+            result["question"], "What does CPU scheduling information include?"
+        )
+        self.assertIn(
+            "CPU scheduling information includes process priority",
+            result["evidence_excerpt"],
+        )
+        self.assertIn(result["evidence_excerpt"], material)
+        self.assertEqual(request.call_count, 4)
+
+
     def test_question_generation_uses_source_grounded_fallback_after_model_repeats(self):
         material = (
             "# Process Control Block\\n"

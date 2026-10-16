@@ -394,6 +394,18 @@ def _fallback_question_from_source(
                 lambda m: f"What does {clean_subject(m.group('subject'))} record?",
             ),
             (
+                r"(?P<subject>[^,;.!?]{2,90}?)\s+includes?\s+(?P<object>[^.!?]+)",
+                lambda m: f"What does {clean_subject(m.group('subject'))} include?",
+            ),
+            (
+                r"(?P<subject>[^,;.!?]{2,90}?)\s+consists of\s+(?P<object>[^.!?]+)",
+                lambda m: f"What does {clean_subject(m.group('subject'))} consist of?",
+            ),
+            (
+                r"(?P<subject>[^,;.!?]{2,90}?)\s+refers to\s+(?P<object>[^.!?]+)",
+                lambda m: f"What does {clean_subject(m.group('subject'))} refer to?",
+            ),
+            (
                 r"(?P<subject>[^,;.!?]{2,90}?)\s+contains?\s+(?P<object>[^.!?]+)",
                 lambda m: f"What does {clean_subject(m.group('subject'))} contain?",
             ),
@@ -404,6 +416,10 @@ def _fallback_question_from_source(
             (
                 r"(?P<subject>[^,;.!?]{2,90}?)\s+acts as\s+(?P<object>[^.!?]+)",
                 lambda m: f"What role does {clean_subject(m.group('subject'))} serve?",
+            ),
+            (
+                r"^(?P<subject>[^:\n]{3,80}):\s*(?P<object>[^:\n].+)$",
+                lambda m: f"What details are listed for {clean_subject(m.group('subject'))}?",
             ),
         ]
         for pattern, make_question in patterns:
@@ -459,8 +475,28 @@ def generate_question(
 
         candidate_tokens = set(candidate_normalized.split())
         previous_tokens = set(previous_normalized.split())
-        # Very short questions are too ambiguous for fuzzy matching; exact matching
-        # above is still applied to them.
+        question_words = {
+            "a", "an", "and", "are", "as", "at", "does", "do", "for",
+            "how", "in", "is", "it", "of", "on", "the", "to", "what",
+            "when", "where", "which", "who", "why", "with",
+        }
+        candidate_content = candidate_tokens - question_words
+        previous_content = previous_tokens - question_words
+        # Reject a broad version of a question when its meaningful terms are
+        # contained in a more specific question already asked (or vice versa).
+        # This catches variants such as "What does a PCB store?" after asking
+        # "What scheduling information does a PCB store?".
+        if (
+            len(candidate_content) >= 2
+            and len(previous_content) >= 2
+            and (
+                candidate_content.issubset(previous_content)
+                or previous_content.issubset(candidate_content)
+            )
+        ):
+            return True
+        # Very short questions are too ambiguous for fuzzy matching; exact and
+        # meaningful-term subset checks above still apply to them.
         if min(len(candidate_tokens), len(previous_tokens)) < 5:
             return False
         overlap = (

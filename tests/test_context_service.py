@@ -469,5 +469,45 @@ class ContextSelectionTests(unittest.TestCase):
             self.assertIn(excerpt, material)
 
 
+    def test_question_generation_retries_when_model_repeats_previous_question(self):
+        material = (
+            "# Process Control Block\n"
+            "A PCB stores the process state. "
+            "The program counter stores the address of the next instruction."
+        )
+        repeated = {
+            "status": "supported",
+            "question": "What information does a PCB store?",
+            "explanation": "The notes describe information stored in a PCB.",
+            "evidence_excerpt": "A PCB stores the process state.",
+        }
+        new_question = {
+            "status": "supported",
+            "question": "What does the program counter store?",
+            "explanation": "The notes describe the program counter.",
+            "evidence_excerpt": "The program counter stores the address of the next instruction.",
+        }
+
+        with patch.object(
+            ai_service, "_request_ollama", side_effect=[repeated, new_question]
+        ) as request:
+            result = ai_service.generate_question(
+                material=material,
+                topic="Process Control Block",
+                previous_questions=["What information does a PCB store?"],
+            )
+
+        self.assertEqual(result["question"], new_question["question"])
+        self.assertEqual(request.call_count, 2)
+        self.assertIn(
+            "What information does a PCB store?",
+            request.call_args_list[0].kwargs["data"]["previous_questions"],
+        )
+        self.assertIn(
+            repeated["question"],
+            request.call_args_list[1].kwargs["data"]["previous_questions"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

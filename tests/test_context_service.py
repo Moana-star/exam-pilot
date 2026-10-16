@@ -41,7 +41,7 @@ class ContextSelectionTests(unittest.TestCase):
         prompt_data = json.loads(payload["prompt"])
         self.assertEqual(prompt_data["course_material"], context)
         self.assertIn("Return exactly one JSON object", payload["system"])
-        self.assertEqual(urlopen.call_args.kwargs["timeout"], 300)
+        self.assertEqual(urlopen.call_args.kwargs["timeout"], 45)
 
     def test_prefers_matching_heading_section_and_keeps_source_unchanged(self):
         material = (
@@ -348,6 +348,33 @@ class ContextSelectionTests(unittest.TestCase):
         self.assertIn(repaired, material)
         self.assertNotEqual(repaired, "A PCB stores all information about CPU scheduling.")
 
+
+    def test_evaluation_model_request_has_short_timeout(self):
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.read.return_value = json.dumps(
+            {"done": True, "response": json.dumps({
+                "label": "Partially correct",
+                "explanation": "One supported point was identified.",
+                "included_points": [],
+                "missing_or_incorrect_points": [],
+            })}
+        ).encode()
+
+        with patch.object(ai_service, "urlopen", return_value=response) as urlopen:
+            ai_service._request_ollama(
+                instructions=ai_service.EVALUATION_INSTRUCTIONS,
+                data={
+                    "topic": "PCB",
+                    "course_material": "A PCB stores process state.",
+                    "question": "What does a PCB store?",
+                    "student_answer": "Process state.",
+                },
+                schema=ai_service.EVALUATION_SCHEMA,
+                operation="evaluation",
+            )
+
+        self.assertEqual(urlopen.call_args.kwargs["timeout"], 20)
 
     def test_evaluation_api_returns_recoverable_response_if_service_raises(self):
         with patch.object(

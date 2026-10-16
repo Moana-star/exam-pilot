@@ -418,6 +418,22 @@ class ContextSelectionTests(unittest.TestCase):
         self.assertEqual(result["missing_or_incorrect_points"], [])
         request.assert_not_called()
 
+    def test_fallback_discloses_when_no_omissions_can_be_verified(self):
+        material = (
+            "# Process Control Block\n"
+            "A Process Control Block is a data structure maintained by the Operating System for every process. "
+            "Process Control Blocks store vital information related to processes."
+        )
+        result = ai_service.evaluate_answer(
+            material=material,
+            topic="Process Control Block",
+            question="What is a PCB?",
+            answer="A PCB is a data structure for each process that stores important information.",
+        )
+        self.assertIn("does not mean your answer is complete", result["explanation"])
+        self.assertTrue(result["included_points"])
+        self.assertEqual(result["missing_or_incorrect_points"], [])
+
     def test_evaluation_falls_back_to_exact_source_feedback_when_ollama_fails(self):
         material = (
             "# Process Control Block\n"

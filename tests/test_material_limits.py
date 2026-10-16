@@ -38,7 +38,7 @@ class MaterialLimitTests(unittest.TestCase):
                 "/api/question", json={"material": material, "topic": "key concept"}
             )
         self.assertEqual(response.status_code, 200)
-        generate.assert_called_once_with(material=material, topic="key concept")
+        generate.assert_called_once_with(material=material, topic="key concept", previous_questions=[])
 
         evaluation = {
             "label": "Correct",

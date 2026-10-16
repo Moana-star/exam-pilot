@@ -377,7 +377,7 @@ class ContextSelectionTests(unittest.TestCase):
         self.assertEqual(urlopen.call_args.kwargs["timeout"], 20)
 
     def test_evaluation_api_uses_source_fallback_if_service_raises(self):
-        material = "# PCB\\nThe PCB stores process state."
+        material = "# PCB\nThe PCB stores process state."
         with patch.object(
             exam_app,
             "evaluate_answer",

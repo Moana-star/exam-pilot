@@ -595,6 +595,38 @@ def _evaluation_unavailable(message: str) -> dict[str, Any]:
     }
 
 
+def fallback_evaluate_answer(
+    *, material: str, topic: str, question: str, answer: str
+) -> dict[str, Any]:
+    """Run the transparent source-only fallback independently of the model path."""
+    try:
+        context = select_relevant_context(material, topic)
+        if not context.text.strip():
+            return _evaluation_unavailable(
+                "The selected notes did not contain enough text for a safe evaluation. "
+                "No grade was assigned. Choose a topic clearly covered by your material."
+            )
+        if not context.maps_to(material):
+            logger.error("Fallback evaluation context failed original-source mapping")
+            return _evaluation_unavailable(
+                "The selected passage could not be verified against the original notes, "
+                "so no grade was assigned. Please generate the question again."
+            )
+        return _fallback_evaluation(
+            context=context,
+            material=material,
+            topic=topic,
+            question=question,
+            answer=answer,
+        )
+    except Exception as exc:
+        logger.exception("Independent evaluation fallback failed failure_class=%s", type(exc).__name__)
+        return _evaluation_unavailable(
+            "The local AI could not finish evaluating this answer, and a safe notes-based "
+            "fallback was unavailable. No grade was assigned. Your answer is still here."
+        )
+
+
 def evaluate_answer(
     *, material: str, topic: str, question: str, answer: str
 ) -> dict[str, Any]:

@@ -35,7 +35,7 @@ class ContextSelectionTests(unittest.TestCase):
         self.assertEqual(payload["model"], "qwen2.5:3b")
         self.assertEqual(payload["format"], ai_service.QUESTION_SCHEMA)
         self.assertFalse(payload["stream"])
-        self.assertEqual(payload["options"]["temperature"], 0)
+        self.assertEqual(payload["options"]["temperature"], 0.25)
         self.assertEqual(payload["options"]["num_predict"], 256)
         self.assertEqual(urlopen.call_args.kwargs["timeout"], 45)
         prompt_data = json.loads(payload["prompt"])

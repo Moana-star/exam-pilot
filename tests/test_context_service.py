@@ -494,7 +494,7 @@ class ContextSelectionTests(unittest.TestCase):
         self.assertEqual(result["status"], "unsupported")
         self.assertEqual(result["question"], "")
         self.assertIn("sufficiently different question", result["explanation"])
-        self.assertEqual(request.call_count, 2)
+        self.assertEqual(request.call_count, 4)
 
     def test_question_generation_retries_when_model_repeats_previous_question(self):
         material = (

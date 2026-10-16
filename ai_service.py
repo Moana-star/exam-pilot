@@ -545,14 +545,24 @@ def _fallback_evaluation(
         key=lambda item: (len(item[1] & answer_tokens), item[2]),
         reverse=True,
     )
-    included = [
-        {
-            "point": "Your answer shares key terms with this passage.",
-            "evidence_excerpt": sentence,
-        }
-        for sentence, sentence_tokens, _ in ranked_matches
-        if len(sentence_tokens & answer_tokens) >= 2
-    ][:3]
+    included = []
+    for sentence, sentence_tokens, _ in ranked_matches:
+        shared_terms = [
+            token for token in re.findall(r"[^\W_]+", sentence, flags=re.UNICODE)
+            if token.casefold() in answer_tokens and token.casefold() not in stop_words
+        ]
+        # Show matching words without implying that lexical overlap proves understanding.
+        unique_shared_terms = list(dict.fromkeys(term.casefold() for term in shared_terms))
+        if len(unique_shared_terms) >= 2:
+            included.append({
+                "point": (
+                    "Word matches found: " + ", ".join(unique_shared_terms[:8]) +
+                    ". This shows shared vocabulary, not verified conceptual correctness."
+                ),
+                "evidence_excerpt": sentence,
+            })
+        if len(included) >= 3:
+            break
     missing = [
         {
             "point": "Review this related point in your notes; a word-match check did not find it in your answer.",
@@ -572,14 +582,21 @@ def _fallback_evaluation(
         len(source_terms),
         len(answer_tokens),
     )
+    explanation = (
+        "The local AI model could not complete its detailed evaluation, so this is "
+        "a basic word-match check against your selected notes—not a full semantic "
+        "judgment. Shared words do not prove that a concept is correct, and synonyms "
+        "or correct paraphrases may not be recognized."
+    )
+    if not missing:
+        explanation += (
+            " The selected passages did not provide enough evidence to identify a "
+            "specific omission. This does not mean your answer is complete; review the "
+            "full relevant section of your notes."
+        )
     return {
         "label": label,
-        "explanation": (
-            "The local AI model could not complete its detailed evaluation, so this is "
-            "a basic word-match check against your selected notes—not a full semantic "
-            "judgment. Compare the passages below with your answer; synonyms or correct "
-            "paraphrases may not be recognized by this fallback."
-        ),
+        "explanation": explanation,
         "included_points": included,
         "missing_or_incorrect_points": missing,
     }

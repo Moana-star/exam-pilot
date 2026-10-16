@@ -119,26 +119,42 @@ async function requestQuestion(button = generateButton, fromFeedback = false) {
 
   setPending(true, button);
   try {
-    const response = await fetch("/api/question", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        material: session.material,
-        topic: session.topic,
-        previous_questions: session.questionHistory,
-      }),
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "Question request failed.");
+    let result;
+    let duplicateQuestionRetries = 0;
+    while (duplicateQuestionRetries < 3) {
+      const response = await fetch("/api/question", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          material: session.material,
+          topic: session.topic,
+          previous_questions: session.questionHistory,
+        }),
+      });
+      result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Question request failed.");
 
-    if (result.status === "supported") {
+      if (result.status !== "supported") break;
+
+      const normalizedQuestion = normalizeQuestion(result.question);
+      const isDuplicate = session.questionHistory.some(
+        (previous) => normalizeQuestion(previous) === normalizedQuestion,
+      );
+      if (!isDuplicate) break;
+
+      duplicateQuestionRetries += 1;
+      // A repeated result is never shown as new. Make a fresh bounded request;
+      // sampling can produce a different question even when a previous response repeats.
+    }
+
+    if (result?.status === "supported") {
       const normalizedQuestion = normalizeQuestion(result.question);
       const isDuplicate = session.questionHistory.some(
         (previous) => normalizeQuestion(previous) === normalizedQuestion,
       );
       if (isDuplicate) {
         throw new Error(
-          "This response repeated a question from this session. Please try again; ExamPilot will not show it as a new question.",
+          "ExamPilot could not produce a different question this time. Try a narrower topic or add more notes.",
         );
       }
 

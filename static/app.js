@@ -34,6 +34,10 @@ const session = {
   materialUploaded: false,
 };
 
+function normalizeQuestion(text) {
+  return text.toLocaleLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 function countWords(text) {
   const trimmed = text.trim();
   return trimmed ? trimmed.split(/\s+/u).length : 0;
@@ -128,16 +132,20 @@ async function requestQuestion(button = generateButton, fromFeedback = false) {
     if (!response.ok) throw new Error(result.error || "Question request failed.");
 
     if (result.status === "supported") {
+      const normalizedQuestion = normalizeQuestion(result.question);
+      const isDuplicate = session.questionHistory.some(
+        (previous) => normalizeQuestion(previous) === normalizedQuestion,
+      );
+      if (isDuplicate) {
+        throw new Error(
+          "This response repeated a question from this session. Please try again; ExamPilot will not show it as a new question.",
+        );
+      }
+
       session.question = result.question;
       session.questionEvidence = result.evidence_excerpt;
-      if (
-        !session.questionHistory.some(
-          (previous) => previous.trim().toLocaleLowerCase() === result.question.trim().toLocaleLowerCase(),
-        )
-      ) {
-        session.questionHistory.push(result.question);
-        session.questionHistory = session.questionHistory.slice(-20);
-      }
+      session.questionHistory.push(result.question);
+      session.questionHistory = session.questionHistory.slice(-20);
       session.answer = "";
       answerInput.value = "";
       session.step = "question";

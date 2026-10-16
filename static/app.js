@@ -157,12 +157,12 @@ async function requestQuestion(button = generateButton, fromFeedback = false) {
   }
 }
 
-function appendFeedbackPoints(list, points) {
+function appendFeedbackPoints(list, points, emptyMessage) {
   list.replaceChildren();
   if (points.length === 0) {
     const empty = document.createElement("li");
     empty.className = "feedback-point";
-    empty.textContent = "No specific points were identified.";
+    empty.textContent = emptyMessage;
     list.append(empty);
     return;
   }
@@ -192,10 +192,15 @@ function showEvaluation(result) {
   label.textContent = result.label;
   label.dataset.label = result.label;
   document.querySelector("#evaluation-explanation").textContent = result.explanation;
-  appendFeedbackPoints(document.querySelector("#included-points"), result.included_points);
+  appendFeedbackPoints(
+    document.querySelector("#included-points"),
+    result.included_points,
+    "No supported answer points could be verified from the selected passages.",
+  );
   appendFeedbackPoints(
     document.querySelector("#missing-points"),
     result.missing_or_incorrect_points,
+    "No specific omission could be verified from the selected passages. Review the full relevant section; this does not mean your answer is complete.",
   );
   evaluationError.hidden = true;
   retryEvaluationButton.hidden = true;

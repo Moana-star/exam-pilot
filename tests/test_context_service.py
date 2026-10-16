@@ -469,7 +469,7 @@ class ContextSelectionTests(unittest.TestCase):
             self.assertIn(excerpt, material)
 
 
-    def test_question_generation_rejects_near_duplicate_and_exits_gracefully(self):
+    def test_question_generation_rejects_near_duplicate_and_uses_source_fallback(self):
         material = (
             "# Process Control Block\n"
             "A PCB stores the process state. "
@@ -491,9 +491,13 @@ class ContextSelectionTests(unittest.TestCase):
                 previous_questions=["What information does a PCB store?"],
             )
 
-        self.assertEqual(result["status"], "unsupported")
-        self.assertEqual(result["question"], "")
-        self.assertIn("sufficiently different question", result["explanation"])
+        self.assertEqual(result["status"], "supported")
+        self.assertNotIn(
+            result["question"].casefold(),
+            {"what information does a pcb store?", "what information does the pcb store?"},
+        )
+        self.assertIn(result["evidence_excerpt"], material)
+        self.assertIn("different sentence", result["explanation"])
         self.assertEqual(request.call_count, 4)
 
     def test_question_generation_retries_when_model_repeats_previous_question(self):

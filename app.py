@@ -1,4 +1,5 @@
 from io import BytesIO
+import logging
 
 from flask import Flask, jsonify, render_template, request
 from flask.wrappers import Request
@@ -28,6 +29,7 @@ class MemoryOnlyRequest(Request):
 
 
 app = Flask(__name__)
+logger = logging.getLogger(__name__)
 app.request_class = MemoryOnlyRequest
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_REQUEST_BYTES
 
@@ -113,16 +115,30 @@ def evaluation():
             question=question_text,
             answer=answer,
         )
-    except AnswerEvaluationError:
-        return (
-            jsonify(
-                error=(
-                    "We couldn’t evaluate your answer right now. "
-                    "Your answer is still here, so you can try again."
-                )
+    except AnswerEvaluationError as error:
+        # Defensive route-level recovery for stale local files or an unexpected
+        # evaluation failure. Never turn grading trouble into an API outage.
+        logger.exception("Evaluation returned an unsafe result: %s", type(error).__name__)
+        result = {
+            "label": "Needs improvement",
+            "explanation": (
+                "A detailed evaluation could not be completed safely. No grade was assigned. "
+                "Your answer is still here; check that your topic is covered by the notes and try again."
             ),
-            503,
-        )
+            "included_points": [],
+            "missing_or_incorrect_points": [],
+        }
+    except Exception as error:
+        logger.exception("Unexpected evaluation failure: %s", type(error).__name__)
+        result = {
+            "label": "Needs improvement",
+            "explanation": (
+                "An unexpected problem prevented safe evaluation. No grade was assigned. "
+                "Your answer is still here; you can continue studying or try again."
+            ),
+            "included_points": [],
+            "missing_or_incorrect_points": [],
+        }
 
     return jsonify(result)
 

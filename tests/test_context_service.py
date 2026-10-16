@@ -433,7 +433,7 @@ class ContextSelectionTests(unittest.TestCase):
                 material=material,
                 topic="Process Control Block",
                 question="What is a PCB?",
-                answer="A PCB is a data structure for each process that stores important information.",
+                answer="A Process Control Block is a data structure maintained by the Operating System for every process, and Process Control Blocks store vital information related to processes.",
             )
         self.assertIn("does not mean your answer is complete", result["explanation"])
         self.assertTrue(result["included_points"])

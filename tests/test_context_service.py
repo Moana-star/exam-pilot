@@ -536,5 +536,40 @@ class ContextSelectionTests(unittest.TestCase):
         )
 
 
+    def test_question_generation_uses_source_grounded_fallback_after_model_repeats(self):
+        material = (
+            "# Process Control Block\\n"
+            "A Process Control Block is a data structure maintained by the Operating System for every process. "
+            "The program counter stores the address of the next instruction."
+        )
+        repeated = {
+            "status": "supported",
+            "question": "What information is typically stored in a Process Control Block (PCB)?",
+            "explanation": "The notes describe information stored in a PCB.",
+            "evidence_excerpt": (
+                "A Process Control Block is a data structure maintained by the Operating System for every process."
+            ),
+        }
+
+        with patch.object(
+            ai_service, "_request_ollama", side_effect=[repeated, repeated, repeated, repeated]
+        ) as request:
+            result = ai_service.generate_question(
+                material=material,
+                topic="Process Control Block",
+                previous_questions=[
+                    "What information is typically stored in a Process Control Block (PCB)?"
+                ],
+            )
+
+        self.assertEqual(result["status"], "supported")
+        self.assertNotEqual(
+            result["question"],
+            "What information is typically stored in a Process Control Block (PCB)?",
+        )
+        self.assertIn(result["evidence_excerpt"], material)
+        self.assertEqual(request.call_count, 4)
+
+
 if __name__ == "__main__":
     unittest.main()

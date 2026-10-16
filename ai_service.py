@@ -146,7 +146,7 @@ def _request_ollama(
         "options": {
             # A little variation helps produce distinct questions while the
             # source and evidence validation keep the quiz grounded.
-            "temperature": 0.25 if operation == "question" else 0,
+            "temperature": 0.65 if operation == "question" else 0,
             # Bound response generation so a slow local model cannot leave the
             # learner waiting indefinitely for a small JSON object.
             "num_predict": 384 if operation == "evaluation" else 256,
@@ -384,7 +384,7 @@ def generate_question(
     try:
         # If the model repeats itself, give it one bounded retry with the repeated
         # question added to the exclusion list. Never silently label a repeat as new.
-        for attempt in range(2):
+        for attempt in range(4):
             result = _request_ollama(
                 instructions=QUESTION_INSTRUCTIONS,
                 data={

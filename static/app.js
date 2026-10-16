@@ -164,11 +164,13 @@ async function requestQuestion(button = generateButton, fromFeedback = false) {
     } else {
       throw new Error("Invalid question response.");
     }
-  } catch {
+  } catch (error) {
     if (fromFeedback) {
       showView(feedbackView);
       nextQuestionError.textContent =
-        "Something went wrong while generating your question. Your material and topic are still here, so you can try again.";
+        error instanceof Error && error.message.startsWith("This response repeated a question")
+          ? error.message
+          : "Something went wrong while generating your question. Your material and topic are still here, so you can try again.";
       nextQuestionError.hidden = false;
       retryNextQuestionButton.hidden = false;
     } else {

@@ -71,12 +71,21 @@ def question():
 
     material = payload.get("material")
     topic = payload.get("topic")
+    previous_questions = payload.get("previous_questions", [])
+    if (
+        not isinstance(previous_questions, list)
+        or len(previous_questions) > 20
+        or any(not isinstance(item, str) for item in previous_questions)
+    ):
+        return jsonify(error="The quiz history is invalid. Please start the quiz again."), 400
     if not isinstance(material, str) or not material.strip():
         return jsonify(error="Please paste your course material first."), 400
     if not isinstance(topic, str) or not topic.strip():
         return jsonify(error="Please enter a topic to practice."), 400
     try:
-        result = generate_question(material=material, topic=topic)
+        result = generate_question(
+            material=material, topic=topic, previous_questions=previous_questions
+        )
     except QuestionGenerationError:
         return (
             jsonify(

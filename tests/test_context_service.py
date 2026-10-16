@@ -469,6 +469,33 @@ class ContextSelectionTests(unittest.TestCase):
             self.assertIn(excerpt, material)
 
 
+    def test_question_generation_rejects_near_duplicate_and_exits_gracefully(self):
+        material = (
+            "# Process Control Block\n"
+            "A PCB stores the process state. "
+            "The program counter stores the address of the next instruction."
+        )
+        near_repeat = {
+            "status": "supported",
+            "question": "What information does the PCB store?",
+            "explanation": "The notes describe information stored in a PCB.",
+            "evidence_excerpt": "A PCB stores the process state.",
+        }
+
+        with patch.object(
+            ai_service, "_request_ollama", side_effect=[near_repeat, near_repeat]
+        ) as request:
+            result = ai_service.generate_question(
+                material=material,
+                topic="Process Control Block",
+                previous_questions=["What information does a PCB store?"],
+            )
+
+        self.assertEqual(result["status"], "unsupported")
+        self.assertEqual(result["question"], "")
+        self.assertIn("sufficiently different question", result["explanation"])
+        self.assertEqual(request.call_count, 2)
+
     def test_question_generation_retries_when_model_repeats_previous_question(self):
         material = (
             "# Process Control Block\n"

@@ -376,7 +376,8 @@ class ContextSelectionTests(unittest.TestCase):
 
         self.assertEqual(urlopen.call_args.kwargs["timeout"], 20)
 
-    def test_evaluation_api_returns_recoverable_response_if_service_raises(self):
+    def test_evaluation_api_uses_source_fallback_if_service_raises(self):
+        material = "# PCB\\nThe PCB stores process state."
         with patch.object(
             exam_app,
             "evaluate_answer",
@@ -385,7 +386,7 @@ class ContextSelectionTests(unittest.TestCase):
             response = exam_app.app.test_client().post(
                 "/api/evaluate",
                 json={
-                    "material": "# PCB\\nThe PCB stores process state.",
+                    "material": material,
                     "topic": "PCB",
                     "question": "What does a PCB store?",
                     "answer": "It stores process state.",
@@ -394,10 +395,11 @@ class ContextSelectionTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200, response.get_data(as_text=True))
         result = response.get_json()
-        self.assertEqual(result["label"], "Needs improvement")
-        self.assertIn("No grade was assigned", result["explanation"])
-        self.assertEqual(result["included_points"], [])
-        self.assertEqual(result["missing_or_incorrect_points"], [])
+        self.assertIn(result["label"], {"Partially correct", "Needs improvement"})
+        self.assertIn("word-match check", result["explanation"])
+        self.assertGreater(len(result["included_points"]), 0)
+        for point in result["included_points"]:
+            self.assertIn(point["evidence_excerpt"], material)
 
     def test_evaluation_returns_recoverable_feedback_when_topic_is_not_in_material(self):
         material = "# File Systems\nFiles organize data on storage devices."

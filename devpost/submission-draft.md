@@ -58,9 +58,9 @@ Python · Flask · HTML · CSS · JavaScript · Ollama · qwen2.5:3b · pypdf ·
 
 ## Verification note — update before submitting
 
-The current code commit `d8b5de2` passed [GitHub Actions run 38905593467](https://github.com/Moana-star/exam-pilot/actions/runs/38905593467), which runs compilation and the unit-test suite on Python 3.11 and 3.12. A separate clean-environment run of the public `main` branch installed the pinned dependencies and passed **30 tests**. A route smoke check returned HTTP 200 for the study page and recoverable HTTP 400 responses for empty API requests. The documentation-only follow-up commit also passed [GitHub Actions run 38911625163](https://github.com/Moana-star/exam-pilot/actions/runs/38911625163). These checks verify the automated baseline; they do not replace a real Ollama-backed browser rehearsal.
+The code commit `d8b5de2` passed [GitHub Actions run 38905593467](https://github.com/Moana-star/exam-pilot/actions/runs/38905593467) on Python 3.11 and 3.12. A separate clean-environment run of the public `main` branch installed the pinned dependencies and passed **30 tests**. A route smoke check returned HTTP 200 for the study page and recoverable HTTP 400 responses for empty API requests.
 
-**Before submission, complete a real local browser session with Ollama:** generate a question from supported notes, answer it, inspect the evaluation and exact excerpts, and try Next Question. Specifically investigate the previously reported failure with a roughly 20,067-word operating-systems PDF. Do not describe this live flow as verified until it has been observed working.
+**Creator-reported live check (17 October 2026):** the creator reports that ExamPilot generated multiple distinct questions from the same software-requirements notes, answer evaluation worked, and **Next Question** continued the flow. This live behavior was reported by the creator and was not independently reproduced by CI. The previously reported approximately 20,067-word operating-systems PDF edge case remains unconfirmed; do not claim that particular case is fixed without testing it. Record the working core flow in the public demo video before submitting.
 
 ## What is next
 

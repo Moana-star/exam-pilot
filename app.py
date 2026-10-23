@@ -19,6 +19,51 @@ MAX_PASTED_WORDS = 5_000
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_UPLOAD_REQUEST_BYTES = MAX_UPLOAD_BYTES + 64 * 1024
 
+EVALUATION_LABELS = {"Correct", "Partially correct", "Needs improvement"}
+EVALUATION_FIELDS = {
+    "label",
+    "explanation",
+    "included_points",
+    "missing_or_incorrect_points",
+}
+
+
+def _valid_evaluation_result(result):
+    """Check the API contract before returning evaluation data to the browser."""
+    if not isinstance(result, dict) or set(result) != EVALUATION_FIELDS:
+        return False
+    if result.get("label") not in EVALUATION_LABELS:
+        return False
+    if not isinstance(result.get("explanation"), str) or not result["explanation"].strip():
+        return False
+    for field in ("included_points", "missing_or_incorrect_points"):
+        points = result.get(field)
+        if not isinstance(points, list):
+            return False
+        for point in points:
+            if (
+                not isinstance(point, dict)
+                or set(point) != {"point", "evidence_excerpt"}
+                or not isinstance(point.get("point"), str)
+                or not point["point"].strip()
+                or not isinstance(point.get("evidence_excerpt"), str)
+            ):
+                return False
+    return True
+
+
+def _evaluation_unavailable_response():
+    """Return a browser-compatible response without pretending an answer was graded."""
+    return {
+        "label": "Needs improvement",
+        "explanation": (
+            "ExamPilot could not safely evaluate this answer. No reliable grade was "
+            "assigned. Your answer is still here; please try again."
+        ),
+        "included_points": [],
+        "missing_or_incorrect_points": [],
+    }
+
 
 class MemoryOnlyRequest(Request):
     """Keep multipart file streams in memory instead of Werkzeug temp files."""
@@ -118,6 +163,7 @@ def evaluation():
         return jsonify(error="Please generate a question before submitting an answer."), 400
     if not isinstance(answer, str) or not answer.strip():
         return jsonify(error="Please write an answer first."), 400
+    result = None
     try:
         result = evaluate_answer(
             material=material,
@@ -129,22 +175,30 @@ def evaluation():
         # A service-level failure should not skip the independent source-only
         # fallback. It may still provide useful feedback without the local model.
         logger.exception("Detailed evaluation failed: %s", type(error).__name__)
-        result = fallback_evaluate_answer(
-            material=material,
-            topic=topic,
-            question=question_text,
-            answer=answer,
-        )
     except Exception as error:
         # Keep the API recoverable and make one bounded attempt at source-only
         # feedback rather than returning an empty evaluation immediately.
         logger.exception("Unexpected evaluation failure: %s", type(error).__name__)
-        result = fallback_evaluate_answer(
-            material=material,
-            topic=topic,
-            question=question_text,
-            answer=answer,
-        )
+
+    # A service can fail by returning malformed data without raising. Validate
+    # its result here as well as inside the service so the browser always receives
+    # the documented response shape.
+    if not _valid_evaluation_result(result):
+        logger.warning("Evaluation service returned an invalid response; trying fallback")
+        try:
+            result = fallback_evaluate_answer(
+                material=material,
+                topic=topic,
+                question=question_text,
+                answer=answer,
+            )
+        except Exception as error:
+            logger.exception("Evaluation fallback failed: %s", type(error).__name__)
+            result = None
+
+    if not _valid_evaluation_result(result):
+        logger.error("Evaluation fallback did not return a valid response")
+        result = _evaluation_unavailable_response()
 
     return jsonify(result)
 

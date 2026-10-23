@@ -278,16 +278,40 @@ async function requestEvaluation() {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Evaluation request failed.");
-    if (
-      !result ||
-      typeof result.label !== "string" ||
-      typeof result.explanation !== "string" ||
-      !Array.isArray(result.included_points) ||
-      !Array.isArray(result.missing_or_incorrect_points)
-    ) {
-      throw new Error("Invalid evaluation response.");
+    if (!result || typeof result !== "object" || Array.isArray(result)) {
+      throw new Error("The evaluation service returned an unreadable response.");
     }
-    showEvaluation(result);
+
+    // Be tolerant of older local backend versions that omit optional feedback
+    // arrays. Keep malformed point entries out of the UI, but preserve a clear
+    // explanation and never pretend a missing grade is a successful evaluation.
+    const allowedLabels = new Set(["Correct", "Partially correct", "Needs improvement"]);
+    const normalizedResult = {
+      label: allowedLabels.has(result.label) ? result.label : "Needs improvement",
+      explanation:
+        typeof result.explanation === "string" && result.explanation.trim()
+          ? result.explanation
+          : "ExamPilot could not provide a reliable evaluation. No dependable grade was assigned. Your answer is still here; please try again.",
+      included_points: Array.isArray(result.included_points)
+        ? result.included_points.filter(
+            (item) =>
+              item &&
+              typeof item === "object" &&
+              typeof item.point === "string" &&
+              typeof item.evidence_excerpt === "string",
+          )
+        : [],
+      missing_or_incorrect_points: Array.isArray(result.missing_or_incorrect_points)
+        ? result.missing_or_incorrect_points.filter(
+            (item) =>
+              item &&
+              typeof item === "object" &&
+              typeof item.point === "string" &&
+              typeof item.evidence_excerpt === "string",
+          )
+        : [],
+    };
+    showEvaluation(normalizedResult);
   } catch {
     showView(questionView);
     evaluationError.textContent =

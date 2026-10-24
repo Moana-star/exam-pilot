@@ -29,9 +29,9 @@ Target length: **60–90 seconds**. This guide is for the public Vercel browser 
 **Show:** The feedback and source passage.
 
 ### 45–60 seconds — Continue learning
-**Do:** Select **Improve my answer** to revise the response, then try another question if time allows.
+**Do:** Select **Try another question** to demonstrate a new prompt, then select **Edit notes** if you want to change the material or topic.
 
-**Say:** “The learner can revisit the same question, improve the explanation, or continue to another question from the supplied material.”
+**Say:** “The learner can continue with another template-and-source combination or return to edit the study material. The question pool is finite, so changing the topic or question style helps explore a different set.”
 
 ### 60–75 seconds — Explain the technical boundary
 **Say:** “The public page is a browser-only prototype. The full repository also contains a Flask application that uses a local Ollama model for question generation and answer evaluation; that model-backed flow is run locally rather than connected to this hosted preview.”

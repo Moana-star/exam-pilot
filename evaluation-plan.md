@@ -20,27 +20,31 @@ Run the commands in the README in the project environment.
 
 The tests may mock Ollama. Passing automated tests does not prove the model produces consistently good questions or feedback.
 
-## B. Manual checks for the public browser preview
+## B. Manual checks for the public Vercel application
 
-The Vercel preview uses browser templates and word-overlap feedback. Test and describe it as a prototype, not as hosted AI.
+The public page offers opt-in AI mode through `POST /api/practice`. Do not mark a live AI check passed until the request has actually succeeded in the deployed browser.
 
 | Check | Expected result | Actual result |
 |---|---|---|
 | Load sample notes | Sample text and Photosynthesis topic populate the fields | Not yet recorded |
+| AI opt-in disclosure | Checkbox is unchecked by default and explains what data is sent | Not yet recorded |
+| AI question request | With consent enabled, a question is generated from supplied notes and source evidence matches the material exactly | Not yet recorded |
+| AI evaluation | Feedback identifies included concepts, possible gaps, and a useful next step without demanding exact keywords | Not yet recorded |
+| Targeted follow-up | Next question uses the reported weak concept when one is available | Not yet recorded |
+| AI unavailable | Authentication/credits/provider errors are shown clearly and the page labels any fallback as browser preview, not AI | Not yet recorded |
+| AI mode off | Questions use browser templates and answer feedback is labelled word-overlap preview | Not yet recorded |
 | Paste custom material | Question prompt uses the chosen topic and a passage from the material | Not yet recorded |
 | Add supported files | Readable supported file text is appended and shown to the learner | Not yet recorded |
 | Unreadable/scanned PDF | Learner gets a clear message if no text can be extracted | Not yet recorded |
 | Empty or very short material | Learner is prompted to add sufficient material | Not yet recorded |
 | Unsupported topic | Learner is asked to choose a topic covered in the notes or add relevant material | Not yet recorded |
-| Try another question | A different template/source combination is chosen when available | Not yet recorded |
-| Topic change | Question history resets for the new topic | Not yet recorded |
-| Improve my answer | The same question and answer remain available for revision | Not yet recorded |
+| Try another question | A different question is chosen when available; recent AI questions are sent to the backend to reduce repetition | Not yet recorded |
+| Topic change | Question history and follow-up context reset for the new topic | Not yet recorded |
 | Narrow mobile viewport | Main controls remain visible and usable without horizontal overflow | Not yet recorded |
 | Keyboard/accessibility | Controls can be reached by keyboard and focus remains visible | Not yet recorded |
 | Refresh | Page session resets predictably; no promise of saved history | Not yet recorded |
 
-Important preview limitations: its question pool is finite, questions use templates, word overlap is not semantic grading, and matching terms does not prove an answer is correct. Do not advertise the preview as an AI model or as unlimited unique question generation.
-
+AI mode requires working Vercel AI Gateway authentication and available credits/provider access. A deployment marked READY does not prove that an AI request succeeds. If the request fails, capture the visible error and resolve the cause before recording an AI-powered demo. Never claim AI success based only on a static deployment check.
 ## C. Learning-quality sample set
 
 Use course notes you are allowed to share. Select at least three topics with clear source passages. For each topic, prepare:

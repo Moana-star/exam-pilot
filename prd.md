@@ -184,4 +184,23 @@ No later enhancements have been committed. Revisit deferred items only after the
 
 ## Open Questions
 
-No unresolved product decisions. **ExamPilot** is intentionally provisional as the working product name; the tagline is also provisional.
+The hosted AI extension has been implemented in code but still requires a live request test in the deployed browser, including verification of authentication, credits/provider access, evidence grounding, and fallback behavior. **ExamPilot** remains the working product name; the tagline is provisional.
+
+
+## Implementation update — hosted AI extension (24 October 2026)
+
+The original PRD describes the local Flask/Ollama MVP. The hosted Vercel page now adds an optional AI path while retaining the browser-only preview as a fallback.
+
+### Added hosted behavior
+
+- The learner explicitly opts in before notes and answers are sent for AI processing.
+- `POST /api/practice` accepts `question` and `evaluate` actions, uses Vercel AI Gateway with the configured/default model, limits request sizes, applies a best-effort per-instance rate limit, and returns recoverable errors for missing authentication, unavailable credits, or provider failure.
+- Question generation uses topic-relevant context and recent questions, returns a question plus a verbatim source excerpt and expected concepts, and can use the previous evaluation's weak concept to target a follow-up.
+- Evaluation returns a qualitative label, included concepts, concepts to review, a suggested next step, and a source excerpt. It accepts equivalent wording and must not treat keyword overlap as correctness.
+- The server validates that the selected evidence excerpt occurs exactly in the original material before returning it.
+- When AI mode is off or an AI request fails, the page can continue with browser templates and word-overlap feedback, explicitly labelled as preview-only.
+- Study history remains in the open page only; no database or account system is added.
+
+### Privacy and release conditions
+
+When AI mode is enabled, notes are sent to the ExamPilot API for context selection; selected context, question, and answer are sent to the AI service. The page discloses this before opt-in. Do not submit confidential content. Do not claim the hosted AI path is verified until a live question request and a live answer-evaluation request both succeed in the deployed browser and their evidence is checked against the supplied notes. A Vercel `READY` status alone is not sufficient evidence of model access or quality.

@@ -42,10 +42,10 @@ $('appendFiles').onclick=async()=>{
  button.disabled=false;button.textContent='Add files to notes';
 };
 const sampleNotes='Photosynthesis is the process by which green plants use light energy to convert carbon dioxide and water into glucose and oxygen. Chlorophyll, found in chloroplasts, absorbs light energy. The process has two broad stages: light-dependent reactions capture energy, while the Calvin cycle uses that energy to help build sugars. Photosynthesis supports food chains by storing energy in organic molecules and removes carbon dioxide from the atmosphere.';
-let evidence='',question='',activeMode='browser',lastFeedback=null,recentQuestions=[];
+let evidence='',question='',activeMode='browser',lastFeedback=null,recentQuestions=[],aiFallbackReason='';
 let questionHistory=new Set(),lastTopic=$('topic').value.trim().toLowerCase(),cycleCount=0;
-$('topic').addEventListener('change',()=>{lastTopic=$('topic').value.trim().toLowerCase();questionHistory.clear();cycleCount=0;lastFeedback=null;});
-$('topic').addEventListener('input',()=>{const t=$('topic').value.trim().toLowerCase();if(t!==lastTopic){lastTopic=t;questionHistory.clear();cycleCount=0;lastFeedback=null;}});
+$('topic').addEventListener('change',()=>{lastTopic=$('topic').value.trim().toLowerCase();questionHistory.clear();cycleCount=0;lastFeedback=null;recentQuestions=[];});
+$('topic').addEventListener('input',()=>{const t=$('topic').value.trim().toLowerCase();if(t!==lastTopic){lastTopic=t;questionHistory.clear();cycleCount=0;lastFeedback=null;recentQuestions=[];}});
 function tokens(s){return(s.toLowerCase().match(/[a-z0-9]{3,}/g)||[]).filter(w=>!['the','and','for','that','with','from','into','this','are','which','use','your','you','what','how','why','can','its','their','they','then','than','have','has','does','about','help','when','where','while'].includes(w))}
 function message(s){$('status').textContent=s;$('status').style.display='block'}function clear(){ $('status').textContent='';$('status').style.display='none'}
 function showList(id,items,emptyText){const ul=$(id);ul.replaceChildren();const list=Array.isArray(items)?items.filter(x=>typeof x==='string'&&x.trim()):[];if(!list.length){const li=document.createElement('li');li.textContent=emptyText;ul.appendChild(li);return}for(const item of list){const li=document.createElement('li');li.textContent=item;ul.appendChild(li)}}
@@ -58,7 +58,7 @@ async function requestAI(payload){
 function showQuestion(q,ev,mode,focusConcept){
  question=q;evidence=ev;activeMode=mode;
  clear();$('question').textContent=q;
- $('qtag').textContent=(mode==='ai'?'AI practice · ':'Preview practice · ')+$('topic').value.trim()+' · Question '+(recentQuestions.length+1);
+ $('qtag').textContent=(mode==='ai'?'AI practice · ':'Preview practice · ')+$('topic').value.trim()+' · Question '+Math.max(1,recentQuestions.length);
  $('empty').style.display='none';$('result').style.display='block';$('qview').style.display='block';$('fview').style.display='none';$('answer').value='';
  if(mode==='ai')message(focusConcept?'AI question focused on a concept to review: '+focusConcept+'.':'AI generated a question from your supplied notes. The source passage is checked against the original material.');
  else message('Browser-only preview mode: this question uses templates and source text, not an AI model. Enable AI-powered practice above to try model-generated questions.');
@@ -80,7 +80,7 @@ async function makeQuestion(){
    questionHistory.add(result.question);
    return;
   }catch(error){
-   message('AI mode could not complete this request: '+error.message+' Browser preview will be used for this question. Check AI service access before recording an AI demo.');
+   aiFallbackReason=error.message;
   }finally{button.disabled=false;button.textContent='Create practice question →'}
  } 
  const style=$('style').value,tw=tokens(t),sentences=m.split(/(?<=[.!?])\s+/).map(s=>s.trim()).filter(s=>s.length>25);
@@ -96,7 +96,8 @@ async function makeQuestion(){
  if(!pool.length){questionHistory.clear();cycleCount++;for(let i=0;i<sourceSentences.length;i++){for(let j=0;j<prompts[style].length;j++){const key=topicKey+'|'+style+'|'+i+'|'+j;pool.push({key,q:prompts[style][j].replaceAll('{topic}',t)+' In your notes, focus on this detail: '+sourceSentences[i],ev:sourceSentences[i]})}}cycleMessage='You have completed this set of '+pool.length+' question variations. A fresh round has started; change the topic or question style for a new set.'}
  const chosen=pool[Math.floor(Math.random()*pool.length)];questionHistory.add(chosen.key);recentQuestions=[...recentQuestions,chosen.q].slice(-8);window.currentExpectedIdeas=[];
  showQuestion(chosen.q,chosen.ev,'browser','');
- if(cycleMessage)message(cycleMessage);
+ if(aiFallbackReason){message('AI is unavailable ('+aiFallbackReason+'). This question uses browser preview mode, not AI.');aiFallbackReason='';}
+ else if(cycleMessage)message(cycleMessage);
 }
 async function review(){
  const a=$('answer').value.trim();

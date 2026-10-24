@@ -106,7 +106,7 @@ async function review(){
  if(activeMode==='ai'&&$('aiConsent').checked){
   const button=$('review');button.disabled=true;button.textContent='Reviewing with AI…';
   try{
-   const result=await requestAI({action:'evaluate',material:$('material').value.trim(),topic:$('topic').value.trim(),question,answer:a,evidence});
+   const result=await requestAI({action:'evaluate',material:$('material').value.trim(),topic:$('topic').value.trim(),question,answer:a,evidence,expectedIdeas:window.currentExpectedIdeas||[]});
    lastFeedback=result;
    $('grade').textContent=result.grade||'AI feedback';
    $('feedbackMode').textContent='AI-evaluated';$('feedbackMode').style.display='inline-block';

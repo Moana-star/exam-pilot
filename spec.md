@@ -7,9 +7,9 @@ status: approved
 
 ## How This Works, In Plain Language
 
-ExamPilot is one small Python web app. Flask serves the study page and receives an optional upload-extraction request plus the existing question-generation and answer-evaluation requests. The browser keeps the current study session in memory while the page is open. Flask sends relevant text to the locally running Ollama model, checks the complete structured result, and only then returns it to the page.
+ExamPilot has a local Python/Flask application and a static Vercel-hosted page with an optional serverless AI endpoint. In the local application, Flask serves the study page and sends relevant text to a locally running Ollama model. In the hosted page, `api/practice.js` sends opt-in requests through Vercel AI Gateway. The browser keeps the current study session in memory while the page is open. Both paths validate response structure and check returned source evidence before displaying it.
 
-The app uses the student's pasted or uploaded material as its only study source. Uploaded files are extracted in memory and placed in the same editable material field; question and evaluation then use the existing routes. The server checks each non-empty evidence excerpt against the original material before displaying the result. There is no database, account system, or study history. AI requests go to Ollama at `http://127.0.0.1:11434` using `qwen2.5:3b`; no API key, paid external AI API, or internet connection is required.
+The app uses the student's pasted or uploaded material as its only study source. Uploaded files are extracted in memory and placed in the same editable material field; question and evaluation then use the existing routes. The server checks each non-empty evidence excerpt against the original material before displaying the result. There is no database, account system, or saved study history. The local app sends AI requests to Ollama at `http://127.0.0.1:11434` using `qwen2.5:3b`; this local path needs no external AI API key or internet connection. Hosted AI mode is a separate opt-in path and requires Vercel AI Gateway authentication and available provider/credit access.
 
 ## The Core Journey Through the System
 
@@ -46,7 +46,8 @@ flowchart LR
 - **Python 3.11 or newer and Flask 3.x.** One local server handles the page and the two JSON routes. Python is familiar to the learner; Flask's quickstart describes a minimal app and local run command. [Flask Quickstart](https://flask.palletsprojects.com/en/stable/quickstart/)
 - **Plain HTML, CSS, and JavaScript.** The browser uses a single page with sections shown or hidden for the start, question, feedback, and recovery states. No separate frontend server, framework, or build step is needed.
 - **Ollama local API.** Flask sends non-streaming requests to `http://127.0.0.1:11434/api/generate` with model `qwen2.5:3b` and a JSON Schema response format. Python's standard library handles HTTP and JSON; no AI client SDK or external account is required.
-- **Runtime dependencies:** Flask, pypdf, and python-docx. The browser uses built-in web features; there is no database, authentication, vector search, embeddings, hosted upload service, analytics, or hosting service.
+- **Local runtime dependencies:** Flask, pypdf, and python-docx. The local app has no database, account authentication, vector search, embeddings, hosted upload service, or analytics.
+- **Hosted AI extension:** Vercel Node serverless function `api/practice.js`, configured by `vercel.json`, calls Vercel AI Gateway with `VERCEL_OIDC_TOKEN` when available or a server-side `AI_GATEWAY_API_KEY`. The default model ID is `openai/gpt-4.1-mini`; it can be overridden with `EXAMPILOT_AI_MODEL`. No AI secret is embedded in browser JavaScript.
 
 ## Where It Runs and How Someone Tries It
 
@@ -208,3 +209,34 @@ Install dependencies from `requirements.txt`. pypdf extracts text from text-base
 - **Derived implementation choice:** define the two small response schemas in Python dictionaries and use the standard library's `json` parser plus explicit validators rather than adding Pydantic or a JSON Schema package. This keeps dependencies few; the validators must be covered during the build's verification work.
 - **Important limitation to carry into implementation:** exact substring verification proves that a quote occurs in the original notes, not that the model interpreted it correctly. Inspect representative outputs and keep feedback clearly tied to evidence.
 - **No unresolved product or architecture choice blocks this draft.** Exact dependency releases should be resolved and pinned in `requirements.txt` when implementation begins; model availability, pricing, and account limits should be checked before live API use.
+
+
+## Implementation update — hosted AI endpoint (24 October 2026)
+
+### Request flow
+
+```mermaid
+flowchart TD
+  A[Learner opts into AI mode] --> B[Browser POST /api/practice]
+  B --> C[Validate method, origin, input sizes, and rate limit]
+  C --> D[Select topic-relevant source sentences and adjacent context]
+  D --> E[Vercel AI Gateway: question or evaluation]
+  E --> F[Parse and validate structured response]
+  F --> G{Evidence is exact in source and selected context?}
+  G -- Yes --> H[Return question or concept feedback]
+  G -- No --> I[Return recoverable error; browser labels fallback honestly]
+```
+
+### Request contracts
+
+- `action: question`: requires material and topic; accepts question style, recent questions, and an optional weak concept. Returns `question`, `evidence`, `focusConcept`, `expectedIdeas`, and mode metadata.
+- `action: evaluate`: requires material, topic, question, answer, and a source evidence excerpt; accepts expected concepts. Returns a qualitative grade, summary, included points, missing points, next step, weak concept, and evidence.
+- Input sizes are bounded in the API function. The endpoint uses a best-effort per-instance request limit and rejects cross-origin requests when the request origin does not match the host.
+- Model calls are non-streaming, have a 25-second abort timer, and request JSON output. The Vercel function timeout is configured to 30 seconds.
+- Evidence is returned only if it is a contiguous string present in both the original submitted material and the selected context. This establishes traceability, not semantic correctness.
+- The hosted page requires explicit opt-in. In AI mode the full notes reach the ExamPilot endpoint for context selection; selected context, question, and answer reach the AI Gateway. The application does not persist notes, answers, or study history.
+- If authentication, credits, provider capacity, or response validation fails, the endpoint returns a recoverable error and the browser clearly labels any template/word-overlap fallback as non-AI preview mode.
+
+### Verification status
+
+The frontend and API JavaScript syntax have been checked, and Vercel reported the deployment as `READY` with `api/practice.js` packaged as a serverless function. A live model request and a full browser end-to-end test have not yet been independently verified. Complete those checks before claiming hosted AI success in the hackathon demo.

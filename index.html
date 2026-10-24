@@ -24,7 +24,7 @@ async function readFileText(file){
   window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   const pdf=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;let out=[];
   for(let p=1;p<=pdf.numPages;p++){const page=await pdf.getPage(p);const c=await page.getTextContent();out.push(c.items.map(x=>x.str).join(' '))}
-  return out.join('\\n');
+  return out.join('\n');
  }
  if(ext==='docx'){
   if(!window.mammoth)throw new Error('DOCX reader library did not load. Try saving the document as TXT, or paste the relevant passage.');
@@ -36,7 +36,7 @@ $('appendFiles').onclick=async()=>{
  if(!selectedFiles.length){message('Choose one or more files first.');return}
  const button=$('appendFiles');button.disabled=true;button.textContent='Reading files…';clear();
  const chunks=[],errors=[];
- for(const file of selectedFiles){try{const text=await readFileText(file);if(text.trim())chunks.push('\\n\\n--- '+file.name+' ---\\n'+text.trim());else errors.push(file.name+': no readable text found.')}catch(e){errors.push(file.name+': '+e.message)}}
+ for(const file of selectedFiles){try{const text=await readFileText(file);if(text.trim())chunks.push('\n\n--- '+file.name+' ---\n'+text.trim());else errors.push(file.name+': no readable text found.')}catch(e){errors.push(file.name+': '+e.message)}}
  if(chunks.length){$('material').value=($('material').value.trim()+chunks.join('')).trim();message('Added text from '+chunks.length+' file(s) to your notes. Check the notes before creating a question.'+(errors.length?' Some files could not be read: '+errors.join(' '):''))}
  else message('No file text could be added. '+errors.join(' '));
  button.disabled=false;button.textContent='Add files to notes';

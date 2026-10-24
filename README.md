@@ -114,3 +114,16 @@ The longer project planning and build notes remain in [`devpost/`](devpost/).
 Uploaded file content is extracted in memory and is not saved as an uploaded file by the app. The current study session is held in the open browser page; refreshing or closing the page clears that session. AI requests are sent to the Ollama service at `http://127.0.0.1:11434` on the same machine by default.
 
 The included Flask command starts a **development server** intended for local use. Do not expose it directly to the public internet or treat it as a production deployment without adding and reviewing appropriate production hosting, request protections, and operational controls.
+
+
+## Hosted preview vs. the full local AI app
+
+The public Vercel page is a **browser-only prototype** that demonstrates the study flow. Its question prompts come from templates, and its answer feedback uses transparent word overlap against a selected passage. It does not connect to Ollama or a hosted AI model, and its feedback is not semantic AI grading. Do not describe the hosted preview as live AI evaluation.
+
+The full Flask application is the AI-enabled implementation: it calls a locally running Ollama `qwen2.5:3b` model for question generation and answer evaluation, validates structured responses, and checks non-empty evidence excerpts against the original material. That AI workflow requires the local setup described above; it is not automatically available on the public preview.
+
+## Differentiator and evaluation plan
+
+ExamPilot's central idea is an **evidence-based learning loop**: use the student's material, practise one topic, compare feedback with source evidence, and use the result to decide what to revise. The important quality bar is not the number of buttons or questions; it is whether questions stay on topic, feedback is useful and cautious, and the source evidence is traceable.
+
+Before submitting, work through [the evaluation plan](evaluation-plan.md) and record actual pass/fail results. It deliberately separates automated tests from manual browser checks and does not invent success rates. Use the [live-preview demo guide](devpost/live-preview-demo.md) for the hosted browser prototype, and the existing [local AI demo guide](devpost/demo-script.md) only when the Ollama-backed local flow has been rehearsed successfully.

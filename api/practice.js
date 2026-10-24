@@ -20,9 +20,19 @@ function sentencesOf(source) {
 function chooseContext(material, topic) {
   const sentences = sentencesOf(material);
   const terms = (topic.toLowerCase().match(/[a-z0-9]{3,}/g) || []);
-  const relevant = sentences.filter(sentence => terms.length === 0 || terms.some(term => sentence.toLowerCase().includes(term)));
-  const selected = (relevant.length ? relevant : sentences).slice(0, 10);
-  return selected.join(" ").slice(0, 9000);
+  if (!sentences.length) return "";
+  const matchingIndexes = [];
+  sentences.forEach((sentence, index) => {
+    if (terms.length === 0 || terms.some(term => sentence.toLowerCase().includes(term))) matchingIndexes.push(index);
+  });
+  const selectedIndexes = new Set();
+  for (const index of matchingIndexes) {
+    selectedIndexes.add(index);
+    if (index > 0) selectedIndexes.add(index - 1);
+    if (index + 1 < sentences.length) selectedIndexes.add(index + 1);
+  }
+  const indexes = (selectedIndexes.size ? [...selectedIndexes] : sentences.map((_, index) => index)).sort((a, b) => a - b).slice(0, 10);
+  return indexes.map(index => sentences[index]).join(" ").slice(0, 9000);
 }
 function parseJson(content) {
   if (typeof content !== "string") throw new Error("The AI response was empty.");
@@ -158,7 +168,8 @@ module.exports = async function handler(req, res) {
           question,
           learnerAnswer: answer,
           sourceExcerpt: context,
-          questionEvidence: evidence
+          questionEvidence: evidence,
+          expectedIdeas: safeList(body.expectedIdeas, 5)
         }),
         850
       );

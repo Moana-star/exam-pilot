@@ -53,3 +53,30 @@ Real-user usability testing, accessibility refinements informed by feedback, bro
 - **Web search and outside study sources:** would weaken the supplied-material grounding boundary.
 - **Scanned-PDF OCR:** outside the current proof-of-concept boundary; image-only PDFs are not supported.
 - **Leaderboards, social features, and complex dashboards:** do not prove the core learning loop.
+
+
+## Differentiator: the Evidence-Based Learning Loop
+
+ExamPilot should make one complete learning loop clear and useful: **student material → topic-focused practice → answer → cautious feedback → visible source passage → next practice or revision**. The distinctive value is traceability to the student's supplied notes, not a claim of unlimited generation or perfect grading.
+
+The application should distinguish three things:
+- **Question relevance:** does the question address the chosen topic and stay within the supplied material?
+- **Feedback usefulness:** does feedback explain included ideas and important gaps without pretending uncertain results are definitive?
+- **Evidence traceability:** can the learner locate the quoted source passage in their own material?
+
+Exact excerpt matching proves that a passage exists in the notes; it does not prove that the model interpreted it correctly. Feedback must remain reviewable by the learner.
+
+## Deployment boundary
+
+The public Vercel preview in `index.html` is a browser-only demonstration. It uses fixed question templates and word-overlap feedback. The full Flask application uses local Ollama for model-generated questions and evaluation. These are different execution paths and must not be described as if the hosted preview is connected to the local model.
+
+## Pre-submission priorities
+
+1. Verify the existing workflow before adding new features.
+2. Fix any broken or confusing interactions.
+3. Improve evidence-based feedback and the learner's next step.
+4. Polish mobile layout, keyboard focus, labels, contrast, and error recovery.
+5. Run and record the evaluation plan.
+6. Record a truthful short demo and verify the Devpost submission requirements.
+
+Accounts, cloud sync, leaderboards, and decorative analytics remain out of scope until the core learning loop is proven reliable.

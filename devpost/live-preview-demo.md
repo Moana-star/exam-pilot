@@ -1,47 +1,55 @@
-# ExamPilot — Public Preview Demo Guide
+# ExamPilot — Hosted Demo Guide
 
-Target length: **60–90 seconds**. This guide is for the public Vercel browser preview, not the Ollama-backed local Flask app.
+Target length: **90–120 seconds**. The hosted page now offers an opt-in AI mode, but the AI request must be tested successfully before recording a demo that claims live AI.
 
 ## Before recording
-- Open the current public preview and test the exact flow once.
-- Use the built-in sample notes or material you have permission to show.
-- Check the page on a phone-sized viewport and a desktop viewport.
-- Close personal tabs and hide notifications.
-- Do not edit the recording to imply an action succeeded when it failed.
+- Open the live site and test the entire flow on the same device/browser you will record.
+- Load sample notes and enable **AI-powered practice** only if you are comfortable sending the notes to the ExamPilot API and selected excerpts/answers to the AI service.
+- Confirm the question is grounded in the displayed source passage and that the evaluation shows included concepts, gaps, and a next step.
+- If the AI request fails, do not edit the recording to imply it succeeded. Either fix the backend access or record a clearly labelled browser-preview demo.
+- Use material you are allowed to share. Close personal tabs and hide notifications.
 
-## Suggested flow
+## Suggested flow when hosted AI succeeds
 
-### 0–10 seconds — The student problem
-**Say:** “ExamPilot is a focused way to turn course notes into practice, so students can test what they understand instead of only rereading.”
+### 0–15 seconds — The problem
+**Say:** “Students can reread lecture notes for hours without checking whether they can explain the ideas. ExamPilot turns their own material into focused practice.”
 
-**Show:** The homepage and its material/topic fields.
+**Show:** The homepage and the course-material field.
 
-### 10–25 seconds — Start from the source
-**Do:** Select **Load sample notes**, check the populated material and topic, then create a practice question.
+### 15–30 seconds — Start from the source
+**Do:** Load sample notes, confirm the topic, and enable **AI-powered practice** after reviewing the disclosure.
 
-**Say:** “The learner starts with their own material, chooses a topic, and gets a question paired with a passage from those notes.”
+**Say:** “The learner starts with their own notes. ExamPilot selects relevant context and asks a question based on that material.”
 
-### 25–45 seconds — Answer and inspect the source
-**Do:** Answer in your own words and select **Review my answer**.
+### 30–50 seconds — Answer the question
+**Do:** Generate a question and answer in your own words.
 
-**Say:** “The preview shows the passage alongside a simple word-overlap comparison. That comparison is a prototype aid, not a semantic AI grade, so students should use the source passage to review their answer.”
+**Say:** “The question is generated through the hosted AI endpoint. The source excerpt is checked against the supplied notes before it is displayed.”
 
-**Show:** The feedback and source passage.
+### 50–80 seconds — Show meaningful feedback
+**Do:** Select **Review my answer** and show the included concepts, gaps to review, suggested next step, and source passage.
 
-### 45–60 seconds — Continue learning
-**Do:** Select **Try another question** to demonstrate a new prompt, then select **Edit notes** if you want to change the material or topic.
+**Say:** “Instead of only showing a number, ExamPilot explains what the answer covered and what the student may need to revisit. The feedback is guidance, so learners should check it against the source.”
 
-**Say:** “The learner can continue with another template-and-source combination or return to edit the study material. The question pool is finite, so changing the topic or question style helps explore a different set.”
+### 80–100 seconds — Close the learning loop
+**Do:** Select **Try another question**. If the feedback identified a weak concept, show the follow-up question targeting it.
 
-### 60–75 seconds — Explain the technical boundary
-**Say:** “The public page is a browser-only prototype. The full repository also contains a Flask application that uses a local Ollama model for question generation and answer evaluation; that model-backed flow is run locally rather than connected to this hosted preview.”
+**Say:** “The learner can continue practising, including a follow-up aimed at a concept they may have missed.”
 
-**Show:** The public repository and the README.
+### 100–115 seconds — Explain the design
+**Say:** “ExamPilot’s differentiator is an evidence-based learning loop: notes, focused practice, source-grounded feedback, and targeted revision. AI mode is optional, and the app explains what data is sent for processing.”
+
+**Show:** The public repository and README.
+
+## If hosted AI is not available
+
+Record the browser-only flow honestly instead. Say that the public preview uses templates and word-overlap feedback, and explain that the AI endpoint is implemented but its live request could not be verified. Do not describe the fallback as AI evaluation.
 
 ## Final check
-- [ ] The recorded page is the real public preview.
-- [ ] The sample material, question, answer, feedback, and source passage actually appeared.
-- [ ] The narration accurately distinguishes the browser prototype from the local AI app.
-- [ ] Audio and text are clear.
-- [ ] The recording is within the event's allowed duration.
-- [ ] The public repository and live demo are linked in the submission.
+- [ ] The question, answer, feedback, and source evidence actually appeared.
+- [ ] The question and evaluation came from AI mode if the narration says they did.
+- [ ] AI response evidence exactly matches the notes.
+- [ ] No secrets, private notes, or personal notifications appear in the recording.
+- [ ] The recording fits the event's allowed duration.
+- [ ] The actual recording was watched from start to finish.
+- [ ] The live site, public repository, and real demo video are linked in the submission.

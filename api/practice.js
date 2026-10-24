@@ -122,6 +122,12 @@ module.exports = async function handler(req, res) {
   const forwarded = (req.headers["x-forwarded-for"] || "").split(",")[0].trim();
   const ip = forwarded || "unknown";
   const now = Date.now();
+  if (hits.size > 1000) {
+    for (const [key, value] of hits) {
+      if (now - value.start > rateWindowMs) hits.delete(key);
+      if (hits.size <= 800) break;
+    }
+  }
   const entry = hits.get(ip) || { start: now, count: 0 };
   if (now - entry.start > rateWindowMs) { entry.start = now; entry.count = 0; }
   entry.count += 1;

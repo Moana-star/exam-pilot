@@ -72,3 +72,21 @@ Activity mode: Reference-only source tour and focused debugging alternative; a l
 
 - Switched the AI provider from OpenAI's hosted API to local Ollama `qwen2.5:3b` at the learner's request because OpenAI API credits are unavailable; retained the question JSON contract, grounding prompt, and exact evidence validation.
 - Added the learner-approved upload alternative after the original PRD/spec deferred it. This revision adds only in-memory extraction and leaves the material/question/evaluation pipeline and approved grounding rules intact. The learner initially requested implementation without a commit; the implementation was later staged, committed, and published to GitHub.
+
+
+## Hosted AI extension — final release checks (24 October 2026)
+
+The Vercel page now has an opt-in AI path via `api/practice.js`; the browser-only template/word-overlap mode remains the fallback. The endpoint uses Vercel AI Gateway and verifies source excerpts before returning them. This change does not remove the local Flask/Ollama path.
+
+- [ ] Open the live production site and enable AI mode only after reading the disclosure.
+- [ ] Confirm a question request succeeds with the chosen course notes.
+- [ ] Verify the displayed source excerpt is copied exactly from the notes.
+- [ ] Submit a substantively correct answer and confirm included concepts are recognized.
+- [ ] Submit a partial answer and confirm a meaningful gap/next step is returned.
+- [ ] Submit an unrelated answer and confirm feedback is cautious and source-grounded.
+- [ ] Try another question and confirm it targets a weak concept when one was identified.
+- [ ] Test an unavailable/unauthenticated AI response and verify fallback is labelled as browser preview, not AI.
+- [ ] Confirm no API key or OIDC token appears in browser source, network response, repository, or recording.
+- [ ] Do not claim the hosted AI path is verified until these checks have actually passed.
+
+Deployment `READY` status and JavaScript syntax checks do not replace these live tests. Current status: implementation deployed; live model/authentication and end-to-end browser checks still need independent verification.

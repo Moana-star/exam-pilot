@@ -56,6 +56,15 @@ Python · Flask · HTML · CSS · JavaScript · Ollama · qwen2.5:3b · pypdf ·
 - App map: https://github.com/Moana-star/exam-pilot/blob/main/devpost/app-map.html
 - Automated checks: https://github.com/Moana-star/exam-pilot/actions
 
+
+## Important deployment distinction
+
+The public Vercel preview is a browser-only prototype: it uses question templates and word-overlap feedback. It is not connected to Ollama and does not provide semantic AI grading. The full Flask app uses a locally running Ollama `qwen2.5:3b` model for question generation and evaluation. In the submission and demo, identify clearly which version is being shown. Do not describe the public preview as hosted AI.
+
+The proposed differentiator is the **Evidence-Based Learning Loop**: the student practises from their own notes, reviews a source passage, revises the answer, and continues to another question. Exact excerpt matching proves the passage exists in the notes; it does not guarantee that the model interpreted the passage correctly.
+
+Before submitting, complete the [evaluation plan](../evaluation-plan.md). Use the [public preview demo guide](live-preview-demo.md) for the hosted prototype, or the [local AI demo guide](demo-script.md) only after the Ollama-backed flow has been rehearsed successfully. Add the real video link after recording; do not claim unrun tests or invented evaluation results.
+
 ## Verification note — update before submitting
 
 The code commit `d8b5de2` passed [GitHub Actions run 38905593467](https://github.com/Moana-star/exam-pilot/actions/runs/38905593467) on Python 3.11 and 3.12. A separate clean-environment run of the public `main` branch installed the pinned dependencies and passed **30 tests**. A route smoke check returned HTTP 200 for the study page and recoverable HTTP 400 responses for empty API requests.

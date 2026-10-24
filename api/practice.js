@@ -101,7 +101,7 @@ module.exports = async function handler(req, res) {
       status: "ok",
       service: "ExamPilot practice API",
       model: MODEL,
-      aiGatewayAuth: "Vercel OIDC or server-side AI_GATEWAY_API_KEY",
+      aiAuthConfigured: Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN),
       note: "This health check confirms the route is deployed; a successful POST is required to verify live model access."
     });
   }

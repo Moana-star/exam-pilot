@@ -32,6 +32,13 @@ Students can spend a long time rereading lecture notes without checking whether 
 
 The project does not require a hosted AI API key or a database. Uploaded files are not saved by the app. Scanned PDFs are not OCR'd.
 
+## Public demo boundary
+
+The public Vercel preview is a browser-only prototype: it uses question templates and a simple word-overlap comparison, not a connected AI model or semantic answer grading. The full AI-backed flow is available when running the Flask app locally with Ollama and `qwen2.5:3b`. The demo narration and Devpost description must make this distinction explicit. Do not present the public preview's word-overlap result as an accuracy score.
+
+- Live browser preview: https://exam-pilot-naom6083-2980.vercel.app
+- Public source repository: https://github.com/Moana-star/exam-pilot
+
 ## A challenge and design decision
 
 A key challenge is using long notes without losing the link between the context sent to the model and the original source. ExamPilot selects relevant source spans and validates evidence against the original material. This preserves the evidence boundary without sending the entire long document in every model request.

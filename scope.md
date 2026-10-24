@@ -68,7 +68,13 @@ Exact excerpt matching proves that a passage exists in the notes; it does not pr
 
 ## Deployment boundary
 
-The public Vercel preview in `index.html` is a browser-only demonstration. It uses fixed question templates and word-overlap feedback. The full Flask application uses local Ollama for model-generated questions and evaluation. These are different execution paths and must not be described as if the hosted preview is connected to the local model.
+ExamPilot now has three explicit execution paths:
+
+- **Hosted AI mode (opt-in):** the Vercel page calls `POST /api/practice`, which uses Vercel AI Gateway for model-generated questions and concept-level evaluation. The server validates request size, rate-limits best-effort per function instance, and verifies returned evidence excerpts against the supplied notes. It uses Vercel OIDC when available or a server-side AI Gateway key; secrets never belong in browser code.
+- **Browser-only preview:** when AI mode is unchecked or the AI request fails, the page can use finite question templates and word-overlap feedback. This fallback is not semantic grading and must be labelled honestly.
+- **Local AI app:** the Flask application uses a locally running Ollama model for model-generated questions and evaluation. This is separate from the hosted endpoint.
+
+When hosted AI mode is enabled, the full notes are sent to the ExamPilot API for context selection, and selected relevant context plus the learner's answer is sent to the AI service. The page explains this before the learner opts in. The app does not save study history. A Vercel deployment marked READY proves deployment completion, not that live model requests succeed; hosted AI must be tested before the demo claims it works.
 
 ## Pre-submission priorities
 

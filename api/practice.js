@@ -95,8 +95,18 @@ async function askAI(system, user, maxTokens = 850) {
   }
 }
 module.exports = async function handler(req, res) {
+  if (req.method === "GET") {
+    res.setHeader("Allow", "GET, POST");
+    return send(res, 200, {
+      status: "ok",
+      service: "ExamPilot practice API",
+      model: MODEL,
+      aiGatewayAuth: "Vercel OIDC or server-side AI_GATEWAY_API_KEY",
+      note: "This health check confirms the route is deployed; a successful POST is required to verify live model access."
+    });
+  }
   if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
+    res.setHeader("Allow", "GET, POST");
     return send(res, 405, { error: "Use POST for study requests." });
   }
   const origin = req.headers.origin;

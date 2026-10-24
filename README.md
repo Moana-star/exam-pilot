@@ -111,6 +111,7 @@ The longer project planning and build notes remain in [`devpost/`](devpost/).
 
 ## Hosted Vercel AI route
 
+- `GET /api/practice` — returns a small health/configuration status response (including whether a supported authentication token is present); this does not prove that model access or credits work.
 - `POST /api/practice` — in the hosted deployment, generate a grounded question or evaluate an answer through Vercel AI Gateway. The learner must opt in on the page. This route is separate from the local Flask routes above.
 
 ## Privacy and safe use

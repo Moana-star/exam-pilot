@@ -132,6 +132,13 @@
       <p class="small">For ExamPilot, the transferable lesson is to test the smallest failing boundary, preserve evidence validation, and never upgrade an unobserved behavior to “verified.”</p>
     </section>
     <section class="panel">
+      <h2>Hosted AI practice (opt-in)</h2>
+      <p>The Vercel page can call <code>POST /api/practice</code> for model-generated questions and concept-level answer feedback through Vercel AI Gateway. The endpoint checks input size, applies a best-effort per-instance rate limit, and verifies source excerpts against the submitted notes before returning them.</p>
+      <p>AI mode is opt-in. When enabled, notes are sent to the ExamPilot API for context selection; selected context and the learner’s answer are sent to the AI service. Do not submit confidential material. No study history is saved.</p>
+      <p>If AI access fails or the learner leaves AI mode off, the page falls back to template questions and word-overlap feedback. That fallback is not semantic grading. The hosted AI request must be tested live before claiming it works in the demo.</p>
+      <p><a href="https://exam-pilot-naom6083-2980.vercel.app">Open live ExamPilot</a> · <a href="../evaluation-plan.md">Review live evaluation checks</a></p>
+    </section>
+    <section class="panel">
       <h2>Run locally</h2>
       <pre><code>python -m venv .venv
 .\.venv\Scripts\Activate.ps1

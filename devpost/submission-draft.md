@@ -12,9 +12,9 @@ A source-grounded study app that turns a student's own course material into prac
 
 ## What it does
 
-ExamPilot lets a learner paste course notes or upload a supported TXT, Markdown, text-based PDF, or DOCX file, choose a topic, and generate one focused practice question. The learner answers in their own words and receives a qualitative evaluation—Correct, Partially correct, or Needs improvement—with an explanation of included and missing points.
+ExamPilot lets a learner paste course notes or upload a supported TXT, Markdown, text-based PDF, or DOCX file, choose a topic, and practise one question at a time. In the hosted page, learners can opt in to a Vercel AI Gateway-backed endpoint for model-generated questions and concept-level feedback, or stay in browser-only preview mode. The preview uses finite templates and word-overlap feedback, which is not semantic grading. The local Flask implementation separately uses Ollama for AI-powered practice.
 
-The app is designed to use only the supplied course material for the question and feedback. It checks that every non-empty evidence excerpt is an exact substring of the original material before displaying it. If the notes do not sufficiently cover a topic, the app should return an unsupported-topic state instead of inventing a question from unrelated knowledge.
+The AI endpoint is designed to use the supplied course material as its source, return included concepts and possible gaps, suggest a next step, and target follow-up practice toward a weak concept. Before displaying source evidence, the server checks that the excerpt occurs verbatim in the original material. Exact excerpt matching proves traceability, not that the model's interpretation is always correct. **Live hosted-AI authentication and model requests must be verified before claiming the hosted AI flow has passed.**
 
 ## Inspiration
 

@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/practice.js": {
+      "maxDuration": 30
+    }
+  }
+}

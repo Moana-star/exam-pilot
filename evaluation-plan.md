@@ -70,6 +70,6 @@ For each case, record whether the question is supported by the source, whether t
 Do not call the project ready until:
 1. Automated tests have been run and failures addressed.
 2. The complete local AI flow has been rehearsed if it is the version shown in the demo.
-3. The public preview's AI limitations are visible and accurately described.
+3. The opt-in hosted AI question and evaluation requests have been tested live, or the demo clearly uses browser-only preview mode and makes no hosted-AI claim.
 4. The actual demo recording has been watched from beginning to end.
 5. The live link, repository link, video, description, and required planning documents are present in the hackathon submission.

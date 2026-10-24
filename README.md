@@ -103,11 +103,15 @@ The required planning documents are available at the repository root:
 
 The longer project planning and build notes remain in [`devpost/`](devpost/).
 
-## API routes
+## Local Flask API routes
 
 - `POST /api/material` — extract a supported uploaded file into text.
-- `POST /api/question` — generate a topic-grounded question or an unsupported-topic response.
-- `POST /api/evaluate` — evaluate an answer and validate returned source excerpts.
+- `POST /api/question` — generate a topic-grounded question or an unsupported-topic response through local Ollama.
+- `POST /api/evaluate` — evaluate an answer and validate returned source excerpts through local Ollama.
+
+## Hosted Vercel AI route
+
+- `POST /api/practice` — in the hosted deployment, generate a grounded question or evaluate an answer through Vercel AI Gateway. The learner must opt in on the page. This route is separate from the local Flask routes above.
 
 ## Privacy and safe use
 

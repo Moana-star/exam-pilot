@@ -30,15 +30,16 @@ Students can spend a long time rereading lecture notes without checking whether 
 - **Exact evidence checks** reject non-empty excerpts that do not occur literally in the original material.
 - **pypdf and python-docx** extract text from supported uploads in memory.
 
-The project does not require a hosted AI API key or a database. Uploaded files are not saved by the app. Scanned PDFs are not OCR'd.
+The local Flask implementation uses local Ollama and does not require a hosted AI provider key. The public Vercel implementation now has an opt-in serverless AI route through Vercel AI Gateway, using Vercel OIDC when available or a server-side AI Gateway key. No AI credentials belong in browser code. The app does not save study history. Scanned PDFs are not OCR'd.
 
 ## Public demo boundary
 
-The public Vercel preview is a browser-only prototype: it uses question templates and a simple word-overlap comparison, not a connected AI model or semantic answer grading. The full AI-backed flow is available when running the Flask app locally with Ollama and `qwen2.5:3b`. The demo narration and Devpost description must make this distinction explicit. Do not present the public preview's word-overlap result as an accuracy score.
+The public Vercel page now offers opt-in hosted AI practice through `api/practice.js`, with question generation, concept-level answer feedback, evidence excerpt validation, and follow-up questions aimed at weak concepts. The app also retains a browser-only fallback using templates and word-overlap feedback when AI mode is off or the AI service is unavailable. That fallback is not semantic grading.
+
+**Verification status:** the code and deployment configuration have been added, but the live AI request must be tested in the deployed browser before the submission or demo claims that hosted AI generation and evaluation succeeded. If live authentication, AI Gateway credits, or provider access fails, record only the browser-preview workflow until the issue is resolved. When AI mode is enabled, notes are sent to the ExamPilot API for context selection, and selected excerpts plus answers are sent to the AI service; do not use confidential material.
 
 - Live browser preview: https://exam-pilot-naom6083-2980.vercel.app
 - Public source repository: https://github.com/Moana-star/exam-pilot
-
 ## A challenge and design decision
 
 A key challenge is using long notes without losing the link between the context sent to the model and the original source. ExamPilot selects relevant source spans and validates evidence against the original material. This preserves the evidence boundary without sending the entire long document in every model request.
@@ -55,7 +56,7 @@ A trade-off remains: exact quote matching verifies that a quote exists in the no
 
 ## Technology
 
-Python · Flask · HTML · CSS · JavaScript · Ollama · qwen2.5:3b · pypdf · python-docx · GitHub Actions
+Python · Flask · HTML · CSS · JavaScript · Vercel Serverless Functions · Vercel AI Gateway · Ollama · qwen2.5:3b · pypdf · python-docx · GitHub Actions
 
 ## Repository and technical map
 
@@ -66,8 +67,7 @@ Python · Flask · HTML · CSS · JavaScript · Ollama · qwen2.5:3b · pypdf ·
 
 ## Important deployment distinction
 
-The public Vercel preview is a browser-only prototype: it uses question templates and word-overlap feedback. It is not connected to Ollama and does not provide semantic AI grading. The full Flask app uses a locally running Ollama `qwen2.5:3b` model for question generation and evaluation. In the submission and demo, identify clearly which version is being shown. Do not describe the public preview as hosted AI.
-
+The public Vercel page has an opt-in AI endpoint using Vercel AI Gateway, plus a clearly labelled browser-only fallback. The local Flask app separately uses a locally running Ollama `qwen2.5:3b` model. The hosted AI endpoint's live authentication and model response still need to be verified before recording a demo that claims successful hosted AI. Identify clearly which mode is being shown, and never describe browser-template/word-overlap fallback as AI evaluation.
 The proposed differentiator is the **Evidence-Based Learning Loop**: the student practises from their own notes, reviews a source passage, revises the answer, and continues to another question. Exact excerpt matching proves the passage exists in the notes; it does not guarantee that the model interpreted the passage correctly.
 
 Before submitting, complete the [evaluation plan](../evaluation-plan.md). Use the [public preview demo guide](live-preview-demo.md) for the hosted prototype, or the [local AI demo guide](demo-script.md) only after the Ollama-backed flow has been rehearsed successfully. Add the real video link after recording; do not claim unrun tests or invented evaluation results.
